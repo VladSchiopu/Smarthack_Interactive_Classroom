@@ -116,7 +116,7 @@
         <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
     </div>
 
-    <div class="main">
+    
     <div class="teacher-dashboard-wrapper min-h-screen bg-slate-50 font-sans">
         <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -134,7 +134,10 @@
                             <p class="text-slate-600 text-sm">Manage your subjects and courses</p>
                         </div>
                     </div>
-                    <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                    <button 
+                        onclick="openAddModal()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
@@ -211,7 +214,7 @@
                     Add Subject
                 </button>
             </div>
-        </main>
+        
     </div>
 
     <div id="addModal" class="modal">
