@@ -32,10 +32,13 @@
 
     <div class="assignment-list">
         {% for assignment in assignments %}
-        <div class="assignment-card">
-            <h4>{{ assignment.title }}</h4>
-            <p>Dată limită: {{ assignment.due_date }}</p>
-            <span class="status status-{{ assignment.status.lower().replace(' ', '-') }}">{{ assignment.status }}</span>
+        <div class="assignment-card"
+        onclick="window.location.href='{{ url_for('main.detaliu_tema', id_tema=assignment.id) }}';"
+        style="cursor: pointer;">
+
+        <h4>{{ assignment.title }}</h4>
+        <p>Dată limită: {{ assignment.due_date }}</p>
+        <span class="status status-{{ assignment.status.lower().replace(' ', '-') }}">{{ assignment.status }}</span>
         </div>
         {% endfor %}
 

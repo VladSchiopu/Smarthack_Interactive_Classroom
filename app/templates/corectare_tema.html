@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+    <ul class="menu">
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li class="active"><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Elevi</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Corectare: {{ submission.assignment.title }}</h2>
+        <a href="{{ url_for('main.detaliu_tema_profesor', id_tema=submission.assignment_id) }}" style="text-decoration: none; color: #6c757d;">&larr; Înapoi la listă</a>
+    </div>
+
+    <p style="font-size: 1.1rem; color: #495057;">Elev: <strong>{{ submission.student.user.name }}</strong></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for category, message in messages %}
+            <div style="padding: 10px; background: {% if category == 'error' %} #fee2e2 {% else %} #dcfce7 {% endif %}; color: {% if category == 'error' %} #ef4444 {% else %} #22c55e {% endif %}; border-radius: 6px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <div style="display: flex; gap: 30px;">
+        
+        <div style="flex: 1;">
+            <h4>Rezolvare trimisă</h4>
+            <div class="assignment-card" style="background: #f8f9fa;">
+                 <p style="white-space: pre-wrap; background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #e9ecef; min-height: 200px;">{{ submission.content }}</p>
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            <h4>Feedback și Notă</h4>
+            <div class="assignment-card">
+                <form method="post">
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        
+                        <label for="grade" style="font-weight: bold;">Notă</label>
+                        <input type="text" id="grade" name="grade" 
+                               value="{{ submission.feedback.grade if submission.feedback else '' }}"
+                               placeholder="ex: 10" required 
+                               style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;">
+                        
+                        <label for="feedback_text" style="font-weight: bold;">Feedback</label>
+                        <textarea id="feedback_text" name="feedback_text" rows="8" required
+                                  placeholder="Scrie aici feedback-ul pentru elev..."
+                                  style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; font-family: inherit;">{{ submission.feedback.feedback_text if submission.feedback else '' }}</textarea>
+
+                        <button type="submit" class="primary-action" style="background-color: #3b82f6; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: 500; border-radius: 8px; cursor: pointer;">
+                            Salvează Corectura
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

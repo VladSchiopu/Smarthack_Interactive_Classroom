@@ -21,6 +21,7 @@ def create_app():
 
     from .models import User  # import modelul User
 
+
     @login_manager.user_loader
     def user_loader(user_id):
         try:

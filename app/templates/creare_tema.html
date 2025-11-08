@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+    <ul class="menu">
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li class="active"><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Elevi</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Creează Temă Nouă</h2>
+    </div>
+
+    <div class="form-container" style="background: #fff; padding: 25px; border-radius: 12px; max-width: 700px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div style="padding: 10px; background: {% if category == 'error' %} #fee2e2 {% else %} #dcfce7 {% endif %}; color: {% if category == 'error' %} #ef4444 {% else %} #22c55e {% endif %}; border-radius: 6px; margin-bottom: 15px;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post">
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                
+                <label for="title" style="font-weight: bold;">Titlul Temei</label>
+                <input type="text" id="title" name="title" required 
+                       style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;">
+                
+                <label for="description" style="font-weight: bold;">Cerință / Descriere</label>
+                <textarea id="description" name="description" rows="6" required
+                          style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; font-family: inherit;"></textarea>
+
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <label for="subject_id" style="font-weight: bold;">Materia</label>
+                        <select id="subject_id" name="subject_id" required
+                                style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; background: #fff;">
+                            <option value="">Alege materia</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="due_date" style="font-weight: bold;">Dată Limită</label>
+                        <input type="date" id="due_date" name="due_date" required
+                               style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;">
+                    </div>
+                </div>
+
+                <label style="font-weight: bold;">Asignează la Elevi:</label>
+                <div id="student-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 6px; padding: 10px;">
+                    {% if students %}
+                        {% for student in students %}
+                        <div style="display: block; margin-bottom: 5px;">
+                            <input type="checkbox" name="student_ids" value="{{ student.id }}" id="student-{{ student.id }}">
+                            <label for="student-{{ student.id }}" style="font-weight: normal; margin-left: 5px;">{{ student.user.name }}</label>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <p>Nu există elevi înregistrați.</p>
+                    {% endif %}
+                </div>
+                <button type="submit" class="primary-action" style="background-color: #3b82f6; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: 500; border-radius: 8px; cursor: pointer;">
+                    Salvează și Asignează Tema
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

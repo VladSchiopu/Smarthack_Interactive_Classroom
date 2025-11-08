@@ -1,11 +1,12 @@
 from . import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.sql import func  # Util pentru câmpuri de dată/timp, deși nu sunt în schema
+from sqlalchemy.sql import func
+from datetime import datetime  # Am adăugat datetime
 
 
 # --- Modelul User (așa cum l-ai oferit, cu relațiile adăugate) ---
-
+# ... (Nicio modificare aici) ...
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
@@ -30,7 +31,7 @@ class User(db.Model, UserMixin):
 
 
 # --- Rolurile Utilizatorilor ---
-
+# ... (Nicio modificare la Student, Professor, Parent) ...
 class Student(db.Model):
     __tablename__ = 'student'
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +70,7 @@ class Parent(db.Model):
 
 
 # --- Structura Academică ---
-
+# ... (Nicio modificare la Subject, StudentSubject) ...
 class Subject(db.Model):  # Fosta tabelă "Materie" (top-dreapta)
     __tablename__ = 'subject'
     id = db.Column(db.Integer, primary_key=True)
@@ -94,12 +95,17 @@ class StudentSubject(db.Model):  # Fosta tabelă "Materie" (centru-stânga)
 
 
 class Assignment(db.Model):
+    # ... (Nicio modificare la Assignment) ...
     __tablename__ = 'assignment'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('professor.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)  # 'id_materie FK'
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=True)
+
+    # --- CÂMPURI NOI ---
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime, nullable=True)  # Data limită
 
     # Relații
     teacher = db.relationship('Professor', back_populates='assignments')
@@ -112,36 +118,51 @@ class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='Submitted')  # ex: Submitted, Graded
+
+    # --- MODIFICARE ---
+    content = db.Column(db.Text, nullable=True)  # Rezolvarea elevului (poate fi goală inițial)
+
+    # --- MODIFICARE ---
+    status = db.Column(db.String(50), nullable=False, default='Nefăcut')  # ex: Nefăcut, Trimis, Corectat
+
+    # --- MODIFICARE ---
+    submitted_at = db.Column(db.DateTime, nullable=True)  # Se setează doar la trimitere
 
     # Relații
     assignment = db.relationship('Assignment', back_populates='submissions')
     student = db.relationship('Student', back_populates='submissions')
-    feedback = db.relationship('Feedback', back_populates='submission', uselist=False)  # Relație unu-la-unu
+    feedback = db.relationship('Feedback', back_populates='submission', uselist=False,
+                               cascade="all, delete-orphan")  # Relație unu-la-unu
 
 
 class Feedback(db.Model):
+    # ... (Nicio modificare la Feedback) ...
     __tablename__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.Integer, db.ForeignKey('submission.id'), unique=True, nullable=False)
-    grade = db.Column(db.Float, nullable=True)
-    feedback_text = db.Column(db.Text, nullable=True)
+
+    # --- CÂMP MODIFICAT ---
+    grade = db.Column(db.String(10), nullable=True)  # Nota (ex: 10, 7.5, "A+")
+
+    feedback_text = db.Column(db.Text, nullable=True)  # Feedback-ul profesorului
+
+    # --- CÂMP NOU ---
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relații
     submission = db.relationship('Submission', back_populates='feedback')
-    ai_reports = db.relationship('AIReport',
-                                 back_populates='feedback')  # Un feedback poate avea mai multe rapoarte AI? (conform diagramei)
+    ai_reports = db.relationship('AIReport', back_populates='feedback', cascade="all, delete-orphan")
 
 
 # --- Secțiunea AI și Chat ---
-
+# ... (Nicio modificare la AIReport, ChatSession, ChatMessage) ...
 class AIReport(db.Model):
     __tablename__ = 'ai_report'
     id = db.Column(db.Integer, primary_key=True)
     feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    report_content = db.Column(db.Text, nullable=True)
+
+    report_content = db.Column(db.Text, nullable=True)  # Răspunsul JSON brut de la AI
     summary = db.Column(db.Text, nullable=True)
     strengths = db.Column(db.Text, nullable=True)
     weaknesses = db.Column(db.Text, nullable=True)

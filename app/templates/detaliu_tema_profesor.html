@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+    <ul class="menu">
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li class="active"><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Elevi</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>{{ assignment.title }}</h2>
+        <a href="{{ url_for('main.teme_profesor') }}" style="text-decoration: none; color: #6c757d;">&larr; Înapoi la Teme</a>
+    </div>
+
+    <div class="subheader">
+        <div>Materie: <strong>{{ assignment.subject.name }}</strong></div>
+        <div>Dată limită: <strong>{{ assignment.due_date.strftime('%d-%m-%Y') if assignment.due_date else 'N/A' }}</strong></div>
+    </div>
+
+    <div class="assignment-list">
+        {% if submissions %}
+            {% for sub in submissions %}
+            <div class="assignment-card">
+                <div>
+                    <h4>{{ sub.student.user.name }}</h4>
+                    <p>Trimis la: {{ sub.submitted_at.strftime('%d-%m-%Y %H:%M') }}</p>
+                </div>
+                
+                {% if sub.status == 'Corectat' %}
+                <div style="text-align: right;">
+                    <span class="status status-corectat">Corectat (Nota: {{ sub.feedback.grade }})</span>
+                    <a href="{{ url_for('main.corectare_tema', id_submission=sub.id) }}" 
+                       style="display: block; margin-top: 8px; font-size: 0.9rem;">Modifică feedback</a>
+                </div>
+                {% elif sub.status == 'Trimis' %}
+                <a href="{{ url_for('main.corectare_tema', id_submission=sub.id) }}" class="header primary-action" style="text-decoration: none;">
+                    Corectează
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <p>Niciun elev nu a trimis o rezolvare încă.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
