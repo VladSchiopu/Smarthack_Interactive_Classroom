@@ -364,6 +364,10 @@ def dashboard():
     ]
     return render_template("dashboard.html", files=files, user=current_user)
 
+@bp.route("/pdashboard")
+@login_required
+def pdashboard():
+   return render_template("pdashboard.html", user=current_user)
 
 @bp.route("/teme_profesor")
 @login_required
