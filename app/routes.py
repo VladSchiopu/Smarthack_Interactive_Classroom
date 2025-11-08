@@ -179,7 +179,7 @@ def home():
     if role == "Profesor":
         user_folder = os.path.join(UPLOAD_FOLDER, str(current_user.id))
         files = get_files_from_folder(user_folder, current_user.id)
-        return render_template("profesor.html", user=current_user, files=files)
+        return render_template("test.html", user=current_user, files=files)
 
     elif role == "Elev":
         student_profile = Student.query.filter_by(user_id=current_user.id).first()
