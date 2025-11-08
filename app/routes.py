@@ -139,7 +139,7 @@ def home():
             {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
             {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/missiong.jpg"},
         ]
-        return render_template("profesor.html", user=current_user, files=files)
+        return render_template("test.html", user=current_user, files=files)
 
     elif role == "Elev":
         # Date dummy pentru elev
@@ -185,6 +185,10 @@ def dashboard():
 @login_required
 def pdashboard():
    return render_template("pdashboard.html", user=current_user)
+
+@bp.route("/test")
+def test():
+   return render_template("test.html", user=current_user)
 
 @bp.route("/teme_profesor")
 @login_required
