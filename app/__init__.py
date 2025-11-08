@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_login import LoginManager
-from .users_db import load_user
+from .database import load_user
 
 login_manager = LoginManager()
 login_manager.login_view = "main.login"
