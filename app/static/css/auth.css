@@ -1,0 +1,129 @@
+/* General layout */
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f9fafb;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.auth-logo img {
+  width: 48px;
+  height: 48px;
+}
+
+.auth-logo h1 {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Card */
+.auth-card {
+  background-color: #ffffff;
+  padding: 40px 48px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  width: 360px;
+  text-align: left;
+}
+
+.auth-card h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.auth-card p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  border-color: #2563eb;
+}
+
+.password-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.primary-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 0;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.primary-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.switch {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.switch a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+footer {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-top: 24px;
+}

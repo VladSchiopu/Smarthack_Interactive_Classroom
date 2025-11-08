@@ -30,16 +30,7 @@ def register():
         add_user(email, name, password)
         return redirect(url_for("main.login"))
 
-    return render_template_string("""
-        <h2>Înregistrare</h2>
-        <form method="post">
-            Nume: <input type="text" name="name"><br>
-            Email: <input type="email" name="email"><br>
-            Parola: <input type="password" name="password"><br>
-            <button type="submit">Înregistrează</button>
-        </form>
-        <a href="/login">Ai deja cont?</a>
-    """)
+    return render_template("register.html")
 
 
 # ---- Login ----
@@ -55,15 +46,7 @@ def login():
             return redirect(url_for("main.hello"))
         return "Date de autentificare incorecte!"
 
-    return render_template_string("""
-        <h2>Login</h2>
-        <form method="post">
-            Email: <input type="email" name="email"><br>
-            Parola: <input type="password" name="password"><br>
-            <button type="submit">Autentificare</button>
-        </form>
-        <a href="/register">Nu ai cont?</a>
-    """)
+    return render_template("login.html")
 
 
 # ---- Logout ----

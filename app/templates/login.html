@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="auth-page">
+  <div class="auth-logo">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ClassroomApp">
+    <h1>ClassroomApp</h1>
+  </div>
+
+  <div class="auth-card">
+    <h2>Welcome Back</h2>
+    <p>Log in to your Classroom</p>
+
+    <form method="post">
+      <label>Email</label>
+      <input type="email" name="email" placeholder="Enter your email address" required>
+
+      <div class="password-row">
+        <label>Password</label>
+        <a href="#" class="forgot-link">Forgot Password?</a>
+      </div>
+      <input type="password" name="password" placeholder="Enter your password" required>
+
+      <button type="submit" class="primary-btn">Log In</button>
+    </form>
+
+    <p class="switch">
+      Don’t have an account?
+      <a href="{{ url_for('main.register') }}">Sign up</a>
+    </p>
+  </div>
+
+  <footer>© 2025 ClassroomApp. All rights reserved.</footer>
+</div>
+
+{% endblock %}
