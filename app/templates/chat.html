@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo Polaris Alpha</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 40px auto; }
+        textarea { width: 100%; height: 120px; margin-bottom: 10px; }
+        button { padding: 10px 20px; font-size: 16px; }
+        .output { background: #f0f0f0; padding: 15px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h2>Demo Polaris Alpha via Flask</h2>
+
+    <label>Input utilizator:</label>
+    <textarea id="userInput"></textarea>
+
+    <button onclick="sendToServer()">Trimite</button>
+
+    <h3>Răspuns model:</h3>
+    <div class="output" id="modelResponse">Răspunsul apare aici...</div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
