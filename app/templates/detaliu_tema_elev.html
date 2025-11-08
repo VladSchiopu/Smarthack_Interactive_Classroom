@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+    <ul class="menu">
+        <li class="active"><a href="{{ url_for('main.home') }}">Teme</a></li>
+        <li><a href="#">Notele mele</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Fișiere curs</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>{{ assignment.title }}</h2>
+        <a href="{{ url_for('main.home') }}" style="text-decoration: none; color: #6c757d;">&larr; Înapoi la Teme</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for category, message in messages %}
+            <div style="padding: 10px; background: {% if category == 'error' %} #fee2e2 {% elif category == 'warning' %} #fff8e1 {% else %} #dcfce7 {% endif %}; color: {% if category == 'error' %} #ef4444 {% elif category == 'warning' %} #f59e0b {% else %} #22c55e {% endif %}; border-radius: 6px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <div style="display: flex; gap: 30px;">
+
+        <div style="flex: 2;">
+            <h4>Cerință</h4>
+            <div class="assignment-card" style="padding: 25px;">
+                <p style="color: #6c757d; font-size: 0.9rem;">
+                    Dată limită: {{ assignment.due_date.strftime('%d %B %Y') if assignment.due_date else 'N/A' }} | 
+                    Materie: {{ assignment.subject.name }}
+                </p>
+                <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
+                <p style="line-height: 1.6; white-space: pre-wrap;">{{ assignment.description }}</p>
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            
+            {% if submission.status == 'Trimis' or submission.status == 'Corectat' %}
+                <h4>Rezolvarea ta</h4>
+                <div class="assignment-card" style="background-color: #f8f9fa;">
+                    <p style="font-size: 0.9rem; color: #6c757d;">Trimisă la: {{ submission.submitted_at.strftime('%d-%m-%Y %H:%M') }}</p>
+                    <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
+                    <p style="white-space: pre-wrap; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">{{ submission.content }}</p>
+                </div>
+
+                {% if feedback %}
+                <h4 style="margin-top: 20px;">Feedback Profesor</h4>
+                <div class="assignment-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0;">Nota primită:</h5>
+                        <span class="grade-badge" style="width: 50px; height: 50px; font-size: 1.2rem;">{{ feedback.grade }}</span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
+                    <p style="white-space: pre-wrap;">{{ feedback.feedback_text }}</p>
+                </div>
+                {% elif submission.status == 'Trimis' %}
+                <div class="status status-în-progres" style="margin-top: 20px; text-align: center;">Așteaptă corectare...</div>
+                {% endif %}
+
+            {% elif submission.status == 'Nefăcut' %}
+                <h4>Trimite rezolvarea</h4>
+                <form method="post">
+                    <div class="assignment-card">
+                        <textarea name="content" rows="10" placeholder="Scrie aici rezolvarea temei..." required
+                                  style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; font-family: inherit; resize: vertical;"></textarea>
+                        <button type="submit" class="primary-action" style="width: 100%; margin-top: 15px; background-color: #3b82f6; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: 500; border-radius: 8px; cursor: pointer;">
+                            Trimite Tema
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

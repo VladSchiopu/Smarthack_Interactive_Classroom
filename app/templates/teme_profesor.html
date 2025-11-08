@@ -24,8 +24,7 @@
 <div class="main">
     <div class="header">
         <h2>Temele create</h2>
-        <button class="primary-action">+ Creează Temă Nouă</button>
-    </div>
+        <a href="{{ url_for('main.creare_tema') }}" class="primary-action" style="text-decoration: none;">+ Creează Temă Nouă</a>    </div>
 
     <div class="subheader">
         <div>Sortare după: <strong>Dată limită</strong></div>
@@ -36,7 +35,11 @@
         {% for assignment in assignments %}
         <div class="prof-assignment-card">
             <div>
-                <h4>{{ assignment.title }}</h4>
+                <h4 style="margin: 0; font-size: 1.1rem; color: #333;">
+    <a href="{{ url_for('main.detaliu_tema_profesor', id_tema=assignment.id) }}" style="text-decoration: none; color: inherit;">
+        {{ assignment.title }}
+    </a>
+</h4>
                 <p class="details">Clasa: {{ assignment.class }} | Dată limită: {{ assignment.due_date }}</p>
             </div>
             <div class="status-summary">
@@ -44,8 +47,8 @@
                 <p>trimise</p>
             </div>
             <div class="status-summary">
-                <span>{{ (assignment.submitted / assignment.total * 100) | int }}%</span>
-                <p>corectate</p> </div>
+                <span>{{ assignment.graded }}</span>
+                <p>corectate</p></div>
         </div>
         {% endfor %}
 
