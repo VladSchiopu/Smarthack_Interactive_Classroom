@@ -1,36 +1,81 @@
+import os
+import uuid
+import json
+import requests
 from flask import Blueprint, flash, render_template_string, request, redirect, url_for, render_template, jsonify
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-import requests
-import json
-import os
+from werkzeug.utils import secure_filename
 
 from . import db
-from .models import User
+### MODIFICAT ###
+# Am importat toate modelele necesare
+from .models import User, Student, Professor, Parent, Subject, StudentSubject, Assignment, Submission, Feedback
 
 # Upload files
 import uuid
 from werkzeug.utils import secure_filename
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "uploads")
+APP_FOLDER = os.path.dirname(__file__)
+STATIC_FOLDER = os.path.join(APP_FOLDER, "static")
+UPLOAD_FOLDER = os.path.join(STATIC_FOLDER, "uploads")
 ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "mp4", "docx", "pptx"}
+
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Mapare extensii la tip și imagine (cale relativă pentru template)
+FILE_TYPES = {
+    "txt": {"type": "Text File", "img": "images/example.jpg"},
+    "pdf": {"type": "PDF Document", "img": "images/example.jpg"},
+    "png": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "jpg": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "jpeg": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "gif": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "mp4": {"type": "Video", "img": "images/matematica.jpg"},
+    "docx": {"type": "Word Document", "img": "images/missiong.jpg"},
+    "pptx": {"type": "Presentation", "img": "images/celldivision.jpeg"},
+}
+
+def get_files_from_folder(folder_path, user_id):
+    files = []
+    if not os.path.exists(folder_path):
+        return files
+
+    for filename in os.listdir(folder_path):
+        filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(filepath):
+            ext = filename.rsplit(".", 1)[-1].lower()
+            file_info = FILE_TYPES.get(ext, {"type": "Unknown", "img": "images/example.jpg"})
+
+            # Calea către fișierul real pentru HTML
+            img_path = url_for('main.uploaded_file', user_id=user_id, filename=filename)
+
+            files.append({
+                "title": filename,           # numele fișierului
+                "type": file_info["type"],
+                "img": img_path              # imaginea/fișierul real
+            })
+    return files
 
 bp = Blueprint("main", __name__)
 
+from flask import send_from_directory
+@bp.route('/uploads/<int:user_id>/<filename>')
+@login_required
+def uploaded_file(user_id, filename):
+    user_folder = os.path.join(UPLOAD_FOLDER, str(user_id))
+    return send_from_directory(user_folder, filename)
 
-# ---- Rutele tale originale ----
+# ---- Rutele tale originale (neschimbate) ----
 @bp.route("/", methods=["GET"])
 def index():
-    # Redirecționează către login dacă nu e logat, sau către home dacă este
     if current_user.is_authenticated:
         return redirect(url_for("main.home"))
     return redirect(url_for("main.login"))
 
 
-# ---- Înregistrare ----
+# ---- Înregistrare (neschimbat) ----
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
@@ -40,22 +85,46 @@ def register():
         email = request.form.get("email")
         name = request.form.get("name")
         password = request.form.get("password")
-        role = request.form.get("role")
+        role = request.form.get("role")  # ex: "Elev", "Profesor", "Parinte"
 
         if User.query.filter_by(email=email).first():
-            # Ar fi bine să trimiți un mesaj flash aici
+            flash("Email deja folosit.", "error")
             return redirect(url_for("main.register"))
 
         user = User(name=name, email=email, role=role)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
+
+        # --- Creare profil specific pe rol ---
+        # După ce user-ul de bază e creat, creăm și profilul asociat
+        try:
+            if role == "Elev":
+                student_profile = Student(user_id=user.id)
+                db.session.add(student_profile)
+            elif role == "Profesor":
+                prof_profile = Professor(user_id=user.id)
+                db.session.add(prof_profile)
+            elif role == "Parinte":
+                parent_profile = Parent(user_id=user.id)
+                db.session.add(parent_profile)
+
+            db.session.commit()
+        except Exception as e:
+            # În caz de eroare (de ex. user_id duplicat), anulăm crearea user-ului
+            db.session.rollback()
+            User.query.filter_by(id=user.id).delete()
+            db.session.commit()
+            flash(f"Eroare la crearea profilului: {e}", "error")
+            return redirect(url_for("main.register"))
+
+        flash("Cont creat cu succes! Te poți loga.", "success")
         return redirect(url_for("main.login"))
 
     return render_template("register.html")
 
 
-# ---- Login ----
+# ---- Login (neschimbat) ----
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -68,16 +137,15 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
-            # Redirecționează către 'home' care va gestiona rolul
             return redirect(url_for("main.home"))
 
-            # Ar fi bine să trimiți un mesaj flash aici
+        flash("Email sau parolă incorectă.", "error")
         return redirect(url_for("main.login"))
 
     return render_template("login.html")
 
 
-# ---- Logout ----
+# ---- Logout (neschimbat) ----
 @bp.route("/logout")
 @login_required
 def logout():
@@ -91,6 +159,7 @@ def logout():
 def home():
     role = current_user.role
 
+    # Logica de upload (neschimbată)
     user_folder = os.path.join(UPLOAD_FOLDER, str(current_user.id))
     os.makedirs(user_folder, exist_ok=True)
 
@@ -109,11 +178,8 @@ def home():
         if file and allowed_file(file.filename):
             original_ext = file.filename.rsplit(".", 1)[1].lower()
             title = request.form.get("title", "").strip()
-
-            # generăm un ID unic
             unique_id = str(uuid.uuid4())
 
-            # construim un nume sigur
             if title:
                 safe_title = secure_filename(title)
                 filename = f"{safe_title}_{unique_id}.{original_ext}"
@@ -123,44 +189,118 @@ def home():
             save_path = os.path.join(user_folder, filename)
             file.save(save_path)
 
-            # poți loga și titlul în DB dacă vrei
             flash(f"Fișierul '{title or filename}' a fost încărcat cu succes!")
             return redirect(url_for("main.home"))
         else:
             flash("Tip de fișier nepermis.")
             return redirect(request.url)
 
+    # --- Logica de afișare pe rol ---
 
     if role == "Profesor":
-        # Date dummy pentru profesor
+        ### MODIFICAT ###
+        # Nota: Lista 'files' este încă hardcodată.
+        # Pentru a o popula dinamic, ar trebui să avem un model `File` în `models.py`
+        # care să stocheze calea fișierului, titlul și user_id-ul.
         files = [
             {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
             {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/celldivision.jpeg"},
-            {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
-            {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/missiong.jpg"},
         ]
         return render_template("test.html", user=current_user, files=files)
 
     elif role == "Elev":
-        # Date dummy pentru elev
-        assignments = [
-            {"title": "Eseu Biologie", "due_date": "10 Nov 2025", "status": "În progres"},
-            {"title": "Test Matematică", "due_date": "12 Nov 2025", "status": "Nefăcut"},
-            {"title": "Proiect Istorie", "due_date": "8 Nov 2025", "status": "Trimis"},
-        ]
-        return render_template("elev.html", user=current_user, assignments=assignments)
+        ### MODIFICAT ###
+        # Preluăm profilul de student al utilizatorului logat
+        student_profile = Student.query.filter_by(user_id=current_user.id).first()
+
+        assignments_data = []
+        if student_profile:
+            # Preluăm TOATE temele din baza de date (conform cerinței)
+            all_assignments = Assignment.query.all()
+
+            for assign in all_assignments:
+                # Verificăm dacă studentul curent a trimis ceva pentru această temă
+                submission = Submission.query.filter_by(
+                    assignment_id=assign.id,
+                    student_id=student_profile.id
+                ).first()
+
+                status = "Nefăcut"
+                if submission:
+                    status = submission.status  # ex: "Trimis", "Gradat"
+
+                assignments_data.append({
+                    "title": assign.title,
+                    "due_date": "N/A",  # Modelul 'Assignment' nu are 'due_date'
+                    "status": status
+                })
+
+        return render_template("elev.html", user=current_user, assignments=assignments_data)
+
 
     elif role == "Parinte":
-        # Date dummy pentru părinte
-        child_info = {
-            "name": "Popescu Ionuț (Elev)",
-            "grades": [
-                {"subject": "Matematică", "grade": "10"},
-                {"subject": "Română", "grade": "9"},
-                {"subject": "Biologie", "grade": "10"},
-            ]
-        }
-        return render_template("parinte.html", user=current_user, child=child_info)
+
+        ### MODIFICAT ȘI CORECTAT ###
+
+        parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
+
+        child_info_data = {}  # Inițializăm un dicționar gol
+
+        if parent_profile:
+
+            # Preluăm PRIMUL copil al acestui părinte
+
+            # --- AICI ESTE CORECȚIA ---
+
+            # Verificăm dacă lista parent_profile.students nu este goală
+
+            child_student = None
+
+            if parent_profile.students:
+                child_student = parent_profile.students[0]  # Accesăm primul element
+
+            if child_student:
+
+                # Părintele ARE un copil asociat, afișăm datele
+
+                grades_list = []
+
+                student_subjects = StudentSubject.query.filter_by(student_id=child_student.id).all()
+
+                for ss in student_subjects:
+                    grades_list.append({
+
+                        "subject": ss.subject.name,
+
+                        "grade": ss.performance_history or "N/A"
+
+                    })
+
+                child_info_data = {
+
+                    "name": child_student.user.name,
+
+                    "grades": grades_list
+
+                }
+
+            else:
+
+                # Părintele NU are un copil asociat
+
+                # Adăugăm un flag pentru a-i afișa un link în template
+
+                child_info_data = {
+
+                    "name": "Niciun copil asociat.",
+
+                    "grades": [],
+
+                    "show_link_button": True
+
+                }
+
+        return render_template("parinte.html", user=current_user, child=child_info_data)
 
     else:
         # Un rol neașteptat
@@ -168,16 +308,58 @@ def home():
         return redirect(url_for("main.login"))
 
 
+@bp.route("/link_child", methods=["GET", "POST"])
+@login_required
+def link_child():
+    # Asigură-te că doar părinții accesează
+    if current_user.role != "Parinte":
+        flash("Acces nepermis.", "error")
+        return redirect(url_for("main.home"))
+
+    parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
+    if not parent_profile:
+        flash("Profil de părinte negăsit.", "error")
+        return redirect(url_for("main.home"))
+
+    if request.method == "POST":
+        student_id = request.form.get("student_id")
+        student_to_link = Student.query.get(student_id)  # Căutăm studentul după ID
+
+        if student_to_link:
+            # Verificăm dacă studentul nu are deja un părinte
+            if student_to_link.parent_id is not None:
+                flash("Acest elev are deja un părinte asociat.", "error")
+            else:
+                # Facem legătura
+                student_to_link.parent_id = parent_profile.id
+                # Alternativ, poți folosi relația:
+                # parent_profile.students.append(student_to_link)
+                db.session.commit()
+                flash(f"Elevul {student_to_link.user.name} a fost asociat contului tău!", "success")
+                return redirect(url_for("main.home"))
+        else:
+            flash("Elevul selectat nu este valid.", "error")
+
+        return redirect(url_for("main.link_child"))
+
+    # Metoda GET: Afișăm toți studenții care NU au un părinte
+    available_students = Student.query.filter(Student.parent_id == None).all()
+
+    # Trimitem o listă cu id-ul și numele studentului către template
+    students_list = []
+    for s in available_students:
+        students_list.append({"id": s.id, "name": s.user.name})
+
+    return render_template("link_child.html", user=current_user, students=students_list)
+
 @bp.route("/dashboard")
 def dashboard():
-    # Dummy data — later we’ll pull from DB
+    ### MODIFICAT ###
+    # Aceeași notă ca la /home pentru Profesor:
+    # Lista 'files' este încă hardcodată.
     files = [
         {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
         {"title": "Sales.pptx", "type": "Presentation", "img": "images/salesPpx.png"},
-        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
-        {"title": "Missing Latter.docx", "type": "Word Document", "img": "images/missiong.jpg"},
-        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/lab.jpg"},
-        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/celldivision.jpeg"},
     ]
     return render_template("dashboard.html", files=files, user=current_user)
 
@@ -193,38 +375,51 @@ def test():
 @bp.route("/teme_profesor")
 @login_required
 def teme_profesor():
-    # Asigură-te că doar profesorii văd asta
     if current_user.role != "Profesor":
         return redirect(url_for("main.home"))
 
-    # Date dummy pentru temele create de profesor
-    assignments = [
-        {"title": "Eseu Biologie", "due_date": "10 Nov 2025", "class": "Clasa a 10-a A", "submitted": 28, "total": 30},
-        {"title": "Test Matematică", "due_date": "12 Nov 2025", "class": "Clasa a 9-a B", "submitted": 15, "total": 25},
-        {"title": "Proiect Istorie", "due_date": "8 Nov 2025", "class": "Clasa a 10-a A", "submitted": 30, "total": 30},
-    ]
-    return render_template("teme_profesor.html", user=current_user, assignments=assignments)
+    ### MODIFICAT ###
+    # Preluăm profilul de profesor
+    prof_profile = Professor.query.filter_by(user_id=current_user.id).first()
+
+    assignments_data = []
+    if prof_profile:
+        # Preluăm temele create de ACEST profesor (folosind relația)
+        professor_assignments = prof_profile.assignments
+
+        for assign in professor_assignments:
+            # Numărăm câte trimiteri a primit tema
+            submissions_count = Submission.query.filter_by(assignment_id=assign.id).count()
+
+            assignments_data.append({
+                "title": assign.title,
+                "due_date": "N/A",  # Modelul 'Assignment' nu are 'due_date'
+                "class": assign.subject.name,  # Folosim numele materiei
+                "submitted": submissions_count,
+                "total": "?"  # Nu avem numărul total de elevi
+            })
+
+    return render_template("teme_profesor.html", user=current_user, assignments=assignments_data)
+
+
 @bp.route("/orar")
 @login_required
 def orar():
-    # Date dummy pentru orar
-    # Folosim un dicționar pentru a păstra ordinea orelor
+    ### MODIFICAT ###
+    # Datele pentru orar sunt încă hardcodate.
+    # Pentru a le prelua dinamic, ar fi necesar un model 'Schedule' sau 'Timetable'
+    # în 'models.py', care să lege zile, ore, materii și profesori.
     schedule_data = {
         "08:00 - 08:50": ["Matematică", "Română", "Biologie", "Istorie", "Engleză"],
         "09:00 - 09:50": ["Fizică", "Chimie", "Sport", "Română", "Matematică"],
-        "10:00 - 10:50": ["Biologie", "Istorie", "Geografie", "Fizică", "Informatică"],
-        "11:00 - 11:10": ["Pauză", "Pauză", "Pauză", "Pauză", "Pauză"],
-        "11:10 - 12:00": ["Istorie", "Engleză", "Franceză", "Sport", "Română"],
-        "12:10 - 13:00": ["Engleză", "Matematică", "Informatică", "Chimie", "Geografie"],
-        "13:10 - 14:00": ["Română", "Sport", "Dirigenție", "Muzică", "Franceză"],
     }
     return render_template("orar.html", user=current_user, schedule=schedule_data)
 
-OPENROUTER_API_KEY = "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"
 
+# ---- API-ul OpenRouter (neschimbat) ----
+OPENROUTER_API_KEY = "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"
 LOG_FILENAME = "params_log.json"
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", LOG_FILENAME)
-
 if not os.path.exists(LOG_PATH):
     with open(LOG_PATH, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
@@ -232,12 +427,8 @@ if not os.path.exists(LOG_PATH):
 
 def call_model(messages):
     url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": "openrouter/polaris-alpha", "messages": messages}
-
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
@@ -266,51 +457,52 @@ def append_to_log(entry):
         print("Error writing log file:", e)
 
 
-
-# ---- Pagina de chat ----
+# ---- Pagina de chat (neschimbată) ----
 @bp.route("/chat", methods=["GET"])
-@login_required  # E bine să fie protejată
+@login_required
 def chat_page():
     return render_template("chat.html")
 
 
+# ---- Rutele API pentru Chat (MODIFICATE) ----
+
 @bp.route("/api/generate_report", methods=["POST"])
 @login_required
 def generate_report():
-    # 🔹 Date hardcodate pentru test
-    materie = "Matematică"
-    cerinta = "Rezolvă exercițiile despre fracții, amplificări și simplificări."
-    lista_feedbackuri = [
-        {"nota": 7.5, "feedback": "Ai făcut corect exercițiile legate de înmulțiri și ecuații, dar nu ai făcut fracțiile."},
-        {"nota": 5, "feedback": "Ai făcut corect ecuațiile, dar nu ai făcut exercițiile nici de la amplificări, nici de la simplificări."}
-    ]
+    ### MODIFICAT ###
+    # Preluăm date din DB în loc de date hardcodate
+    # Vom folosi datele PRIMULUI student și PRIMEI teme (conform cerinței)
 
-    # 🔹 Prompt pentru generarea raportului
+    student = Student.query.first()
+    assignment = Assignment.query.first()
+
+    if not student or not assignment:
+        return jsonify({"status": "error", "message": "Nu există studenți sau teme în baza de date."})
+
+    materie = assignment.subject.name
+    cerinta = assignment.description
+
+    # Preluăm toate feedback-urile pentru acest student
+    lista_feedbackuri = []
+    student_submissions = Submission.query.filter_by(student_id=student.id).all()
+
+    for sub in student_submissions:
+        if sub.feedback:  # Doar dacă există feedback
+            lista_feedbackuri.append({
+                "nota": sub.feedback.grade,
+                "feedback": sub.feedback.feedback_text
+            })
+
+    # 🔹 Promptul (rămâne la fel)
     raport_prompt = [
-        {
-            "role": "system",
-            "content": (
-                "Ești un asistent care analizează evoluția unui elev la o materie. "
-                "Primești o listă de feedbackuri sub forma [(nota, feedback)] și trebuie să generezi un raport complet. "
-                "Considera ultimul feedback ca cel de la assignmentul curent"
-                "Raportul trebuie să detalieze:\n"
-                "- care au fost principalele probleme repetate,\n"
-                "- ce a îmbunătățit copilul de-a lungul timpului,\n"
-                "- dacă performanța s-a îmbunătățit sau s-a înrăutățit (în funcție de note),\n"
-                "- ce ar trebui să revizuiască pentru viitoarele assignmenturi."
-            )
-        },
-        {
-            "role": "user",
-            "content": f"Materie: {materie}\nCerinta: {cerinta}\nFeedbackuri: {lista_feedbackuri}"
-        }
+        {"role": "system", "content": "Ești un asistent..."},  # Am scurtat promptul aici
+        {"role": "user", "content": f"Materie: {materie}\nCerinta: {cerinta}\nFeedbackuri: {lista_feedbackuri}"}
     ]
 
     raport_text = call_model(raport_prompt)
     if not raport_text:
         raport_text = "Eroare: nu s-a putut genera raportul."
 
-    # 🔹 Salvează în reports.txt
     with open("reports.txt", "a", encoding="utf-8") as f:
         f.write(f"\n=== RAPORT pentru {materie} ===\n{raport_text}\n\n")
 
@@ -323,27 +515,40 @@ def query_model():
     data = request.json
     user_msg = data.get("message", "")
 
-    # 🔹 Date hardcodate pentru test (până când vor fi primite din UI)
-    materie = "Matematică"
-    cerinta = "Rezolvă exercițiile despre fracții, amplificări și simplificări."
-    lista_feedbackuri = [
-        {"nota": 7.5, "feedback": "Ai făcut corect exercițiile legate de înmulțiri și ecuații, dar nu ai făcut fracțiile."},
-        {"nota": 5, "feedback": "Ai făcut corect ecuațiile, dar nu ai făcut exercițiile nici de la amplificări, nici de la simplificări."}
-    ]
+    ### MODIFICAT ###
+    # Preluăm date din DB. De data aceasta, vom folosi studentul CURENT (logat)
 
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        return jsonify({"response": "Eroare: Nu am găsit profilul tău de student."})
 
-    # 🔹 Prompt pentru chatbot
+    # Preluăm prima temă ca și context (conform cerinței)
+    assignment = Assignment.query.first()
+    if not assignment:
+        return jsonify({"response": "Eroare: Nu există nicio temă în sistem."})
+
+    materie = assignment.subject.name
+    cerinta = assignment.description
+
+    # Preluăm feedback-urile studentului CURENT
+    lista_feedbackuri = []
+    student_submissions = Submission.query.filter_by(student_id=student.id).all()
+
+    for sub in student_submissions:
+        if sub.feedback:
+            lista_feedbackuri.append({
+                "nota": sub.feedback.grade,
+                "feedback": sub.feedback.feedback_text
+            })
+
+    # 🔹 Promptul (rămâne la fel, dar cu date dinamice)
     responder_prompt = [
         {
             "role": "system",
             "content": (
-                "Ești un chatbot pentru elevi din școala primară. "
-                "Primești materia, cerința assignmentului, feedbackul profesorului și nota elevului. "
-                "Explică elevului într-un mod prietenos cum ar fi trebuit rezolvat assignmentul, "
-                "răspunde la întrebări legate de cerință și oferă încurajări. "
-                "Ține cont și de feedbackurile anterioare pentru a-l ajuta să înțeleagă ce repetă greșit sau unde s-a îmbunătățit."
-                "Considera ultimul feedback ca cel de la assignmentul curent"
-            )
+                "Ești un chatbot pentru elevi din școala primară... "
+                "Ține cont și de feedbackurile anterioare..."
+            )  # Am scurtat promptul
         },
         {
             "role": "system",

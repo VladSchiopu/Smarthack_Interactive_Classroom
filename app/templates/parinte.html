@@ -44,4 +44,21 @@
     </div>
 </div>
 
+    <h3>Informații copil</h3>
+<p>Nume: {{ child.name }}</p>
+
+{% if child.show_link_button %}
+    <p>Nu ai încă un copil asociat contului tău.</p>
+    <a href="{{ url_for('main.link_child') }}" class="button">
+        Asociază un copil
+    </a>
+{% else %}
+    <h4>Note:</h4>
+    <ul>
+        {% for item in child.grades %}
+            <li>{{ item.subject }}: {{ item.grade }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
 {% endblock %}

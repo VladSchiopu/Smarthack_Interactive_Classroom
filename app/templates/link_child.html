@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block content %}
+<h2>Asociază un copil</h2>
+<p>Selectează copilul pe care vrei să îl asociezi contului tău de părinte.</p>
+
+<form method="POST" action="{{ url_for('main.link_child') }}">
+    <label for="student_id">Alege elevul:</label>
+    <select name="student_id" id="student_id">
+        {% for student in students %}
+            <option value="{{ student.id }}">{{ student.name }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+    <button type="submit">Asociază</button>
+</form>
+
+{% endblock %}
