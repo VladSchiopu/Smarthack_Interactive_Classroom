@@ -83,14 +83,12 @@ def home():
 def dashboard():
     # Dummy data — later we’ll pull from DB
     files = [
-        {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/doc.png"},
-        {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/presentation.png"},
-        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/video.png"},
-        {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/doc.png"},
-        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/doc.png"},
-        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/video.png"},
-        {"title": "Genetics Worksheet.pdf", "type": "PDF Document", "img": "images/doc.png"},
-        {"title": "Final Project Rubric.docx", "type": "Word Document", "img": "images/doc.png"},
+        {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
+        {"title": "Sales.pptx", "type": "Presentation", "img": "images/salesPpx.png"},
+        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
+        {"title": "Missing Latter.docx", "type": "Word Document", "img": "images/missiong.jpg"},
+        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/lab.jpg"},
+        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/celldivision.jpeg"},
     ]
     return render_template("dashboard.html", files=files, user=current_user)
 
