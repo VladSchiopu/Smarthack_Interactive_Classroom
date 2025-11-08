@@ -142,6 +142,20 @@ def append_to_log(entry):
         print("Error writing log file:", e)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ---- Pagina de chat ----
 @bp.route("/chat", methods=["GET"])
 def chat_page():
@@ -157,7 +171,7 @@ def query_model():
         {
             "role": "system",
             "content":
-                "Primești text de la utilizator. Extrage DOAR parametrii:\n"
+                "Primești text de la un utilizator care vrea sa invete. Estimeaza varsta utilizatorului in functie de probleme. Extrage DOAR parametrii:\n"
                 "- Fericire (Nervos, Fericit, Trist, Plictisit, Normal, Chef_de_bataie)\n"
                 "- Varsta (0–100)\n"
                 'Răspunde STRICT în JSON valid: { "fericire": "<valoare>", "varsta": numar }'
@@ -189,13 +203,19 @@ def query_model():
             "role": "system",
             "content": (
                 "Ești o IA care răspunde întrebărilor utilizatorului. "
-                "Adaptează tonul în funcție de parametrii:\n"
+                "Adaptează tonul în funcție de parametrii fericire:\n"
                 "- Nervos → răspunde iritat\n"
                 "- Fericit → vesel și prietenos\n"
                 "- Trist → melancolic\n"
                 "- Plictisit → apatic\n"
                 "- Normal → neutru\n"
                 "- Chef_de_bataie → provocator și furios"
+                "si varsta: "
+                "- 0-14 → foloseste cuvinte gen skibidi rizz, gyat\n"
+                "- 14-24 → foloseste cuvinte gen cooked, efectiv, really, actually\n"
+                "- 24-40 → vorbeste normal\n"
+                "- 40+ → esti obosit si te dor salele\n"
+                "Detaliaza raspunsurile si vorbeste mult"
             )
         },
         {"role": "system",

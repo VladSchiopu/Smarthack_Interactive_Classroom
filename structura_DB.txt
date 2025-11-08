@@ -1,0 +1,43 @@
+Users (rol: profesor/elev/părinte)
+├── Students (extend User)
+├── Teachers (extend User)
+└── Parents (extend User) → relație cu Students
+
+Assignments
+├── teacher_id
+├── description
+├── deadline
+└── target_students[]
+
+Submissions
+├── assignment_id
+├── student_id
+├── content
+├── submitted_at
+└── status
+
+TeacherFeedback
+├── submission_id
+├── grade
+├── feedback_text
+└── created_at
+
+AIReports
+├── submission_id
+├── student_id
+├── report_content (JSON)
+├── strengths[]
+├── weaknesses[]
+├── suggestions[]
+└── created_at
+
+ChatSessions
+├── student_id
+├── report_id
+└── messages[] (JSON)
+
+StudentProfile
+├── student_id
+├── interests[]
+├── learning_style
+└── performance_history (JSON)
