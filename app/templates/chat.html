@@ -69,17 +69,24 @@
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
         try {
-            const response = await fetch("{{ url_for('main.query_model') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userInput })
-            });
+        const response = await fetch("{{ url_for('main.query_model') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: userInput })
+        });
 
-            const data = await response.json();
-            document.getElementById('typing-indicator').textContent = data.response;
+        const data = await response.json();
+
+        const typingBubble = document.getElementById("typing-indicator");
+
+        // transformă indicatorul într-un mesaj final
+        typingBubble.removeAttribute("id");
+        typingBubble.textContent = data.response;
 
         } catch (error) {
-            document.getElementById('typing-indicator').textContent = "Eroare la comunicarea cu AI-ul.";
+            const typingBubble = document.getElementById("typing-indicator");
+            typingBubble.removeAttribute("id");
+            typingBubble.textContent = "Eroare la comunicarea cu AI-ul.";
         }
 
         chatHistory.scrollTop = chatHistory.scrollHeight;
