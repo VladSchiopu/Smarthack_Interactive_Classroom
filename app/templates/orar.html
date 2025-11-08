@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+    {% if user.role == 'Profesor' %}
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li class="active"><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Elevi</a></li>
+    {% elif user.role == 'Elev' %}
+        <li><a href="{{ url_for('main.home') }}">Teme</a></li>
+        <li><a href="#">Notele mele</a></li>
+        <li class="active"><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Fișiere curs</a></li>
+    {% elif user.role == 'Parinte' %}
+        <li><a href="{{ url_for('main.home') }}">Situație copil</a></li>
+        <li><a href="#">Absențe</a></li>
+        <li><a href="#">Mesagerie</a></li>
+    {% endif %}
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Orar - Clasa a 10-a A</h2>
+    </div>
+
+    <div class="schedule-container">
+        <table class="schedule-table">
+            <thead>
+                <tr>
+                    <th>Ora</th>
+                    <th>Luni</th>
+                    <th>Marți</th>
+                    <th>Miercuri</th>
+                    <th>Joi</th>
+                    <th>Vineri</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hour, subjects in schedule.items() %}
+                <tr>
+                    <td class="time">{{ hour }}</td>
+                    
+                    {% for subject in subjects %}
+                    <td class="{{ 'break' if subject == 'Pauză' else '' }}">
+                        {{ subject }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

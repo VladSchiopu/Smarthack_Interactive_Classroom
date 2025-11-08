@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li class="active"><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Elevi</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Temele create</h2>
+        <button class="primary-action">+ Creează Temă Nouă</button>
+    </div>
+
+    <div class="subheader">
+        <div>Sortare după: <strong>Dată limită</strong></div>
+        <div>Filtrare după: <strong>Toate clasele</strong></div>
+    </div>
+
+    <div class="assignment-list">
+        {% for assignment in assignments %}
+        <div class="prof-assignment-card">
+            <div>
+                <h4>{{ assignment.title }}</h4>
+                <p class="details">Clasa: {{ assignment.class }} | Dată limită: {{ assignment.due_date }}</p>
+            </div>
+            <div class="status-summary">
+                <span>{{ assignment.submitted }} / {{ assignment.total }}</span>
+                <p>trimise</p>
+            </div>
+            <div class="status-summary">
+                <span>{{ (assignment.submitted / assignment.total * 100) | int }}%</span>
+                <p>corectate</p> </div>
+        </div>
+        {% endfor %}
+
+        {% if not assignments %}
+        <p>Nu ai creat nicio temă.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
