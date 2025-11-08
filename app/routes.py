@@ -206,8 +206,7 @@ def home():
             {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
             {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/celldivision.jpeg"},
         ]
-        files += get_files_from_folder(user_folder, current_user.id)
-        return render_template("profesor.html", user=current_user, files=files)
+        return render_template("test.html", user=current_user, files=files)
 
     elif role == "Elev":
         ### MODIFICAT ###
@@ -368,6 +367,10 @@ def dashboard():
 @login_required
 def pdashboard():
    return render_template("pdashboard.html", user=current_user)
+
+@bp.route("/test")
+def test():
+   return render_template("test.html", user=current_user)
 
 @bp.route("/teme_profesor")
 @login_required

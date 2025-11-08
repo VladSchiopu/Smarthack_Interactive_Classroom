@@ -1,0 +1,555 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Scoped styles to avoid leaking if possible, though Tailwind is utility-first */
+        .teacher-dashboard-wrapper * {
+            box-sizing: border-box;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            ring: 2px;
+            ring-color: #1e293b;
+            ring-offset: 2px;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #1e293b;
+        }
+
+        .card {
+            transition: box-shadow 0.3s;
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .delete-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 60;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-modal.active {
+            display: flex;
+        }
+
+        /* Ensure button pointer works even if base css overrides it */
+        .teacher-dashboard-wrapper button {
+            cursor: pointer;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+    </style>
+
+    <div class="sidebar">
+        <div class="profile">
+            <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+            <div>
+                <h3>{{ user.name }}</h3>
+                <p>{{ user.role }}</p>
+            </div>
+        </div>
+
+        <ul class="menu">
+            <li class="active"><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+            <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+            <li><a href="{{ url_for('main.test') }}">Elevi</a></li>
+            <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+        </ul>
+
+        <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+    </div>
+
+    <div class="main">
+    <div class="teacher-dashboard-wrapper min-h-screen bg-slate-50 font-sans">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-900">Teacher Dashboard</h1>
+                            <p class="text-slate-600 text-sm">Manage your subjects and courses</p>
+                        </div>
+                    </div>
+                    <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Subject
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl p-6 border border-slate-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-600 text-sm">Total Subjects</p>
+                            <p class="text-slate-900 text-2xl font-bold" id="totalSubjects">6</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 border border-slate-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-600 text-sm">Total Students</p>
+                            <p class="text-slate-900 text-2xl font-bold" id="totalStudents">177</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 border border-slate-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-600 text-sm">Teaching Hours</p>
+                            <p class="text-slate-900 text-2xl font-bold" id="totalHours">251</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 !text-left">Your Subjects</h2>
+                <p class="text-slate-600">Manage and track all your teaching subjects</p>
+            </div>
+
+            <div id="subjectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+            <div id="emptyState" class="bg-white rounded-xl border border-slate-200 p-12 text-center" style="display: none;">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">No subjects yet</h3>
+                <p class="text-slate-600 mb-6">Get started by adding your first subject</p>
+                <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Subject
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 mb-2 !text-left">Add New Subject</h2>
+                    <p class="text-slate-600 text-sm">Create a new subject to add to your teaching portfolio</p>
+                </div>
+
+                <form id="addSubjectForm" class="space-y-6">
+                    <div class="space-y-2">
+                        <label for="subjectName" class="block text-sm font-medium text-slate-900">Subject Name *</label>
+                        <input
+                            type="text"
+                            id="subjectName"
+                            required
+                            placeholder="e.g., Mathematics"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="subjectDescription" class="block text-sm font-medium text-slate-900">Description *</label>
+                        <textarea
+                            id="subjectDescription"
+                            required
+                            rows="3"
+                            placeholder="Brief description of the subject"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        ></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="subjectStudents" class="block text-sm font-medium text-slate-900">Number of Students</label>
+                            <input
+                                type="number"
+                                id="subjectStudents"
+                                min="0"
+                                placeholder="0"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="subjectHours" class="block text-sm font-medium text-slate-900">Teaching Hours</label>
+                            <input
+                                type="number"
+                                id="subjectHours"
+                                min="0"
+                                placeholder="0"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-900">Subject Color</label>
+                        <div class="flex flex-wrap gap-2" id="colorOptions"></div>
+                    </div>
+
+                    <div class="flex gap-3 justify-end pt-4">
+                        <button
+                            type="button"
+                            onclick="closeAddModal()"
+                            class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Add Subject
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="delete-modal">
+        <div class="modal-content max-w-md">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-2 !text-left">Delete Subject</h2>
+                <p class="text-slate-600 mb-6">Are you sure you want to delete "<span id="deleteSubjectName"></span>"? This action cannot be undone.</p>
+                <div class="flex gap-3 justify-end">
+                    <button
+                        onclick="closeDeleteModal()"
+                        class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onclick="confirmDelete()"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        // Initial data
+        let subjects = [
+            {
+                id: '1',
+                name: 'Mathematics',
+                description: 'Advanced algebra and calculus for grade 10-12',
+                students: 32,
+                hours: 45,
+                color: 'bg-blue-500',
+            },
+            {
+                id: '2',
+                name: 'Physics',
+                description: 'Mechanics, thermodynamics, and electromagnetism',
+                students: 28,
+                hours: 40,
+                color: 'bg-purple-500',
+            },
+            {
+                id: '3',
+                name: 'Chemistry',
+                description: 'Organic and inorganic chemistry fundamentals',
+                students: 25,
+                hours: 38,
+                color: 'bg-green-500',
+            },
+            {
+                id: '4',
+                name: 'Biology',
+                description: 'Cell biology, genetics, and human anatomy',
+                students: 30,
+                hours: 42,
+                color: 'bg-emerald-500',
+            },
+            {
+                id: '5',
+                name: 'English Literature',
+                description: 'Classic and contemporary literature analysis',
+                students: 35,
+                hours: 50,
+                color: 'bg-amber-500',
+            },
+            {
+                id: '6',
+                name: 'History',
+                description: 'World history from ancient to modern times',
+                students: 27,
+                hours: 36,
+                color: 'bg-red-500',
+            },
+        ];
+
+        const colors = [
+            { name: 'Blue', value: 'bg-blue-500' },
+            { name: 'Purple', value: 'bg-purple-500' },
+            { name: 'Green', value: 'bg-green-500' },
+            { name: 'Emerald', value: 'bg-emerald-500' },
+            { name: 'Amber', value: 'bg-amber-500' },
+            { name: 'Red', value: 'bg-red-500' },
+            { name: 'Pink', value: 'bg-pink-500' },
+            { name: 'Indigo', value: 'bg-indigo-500' },
+            { name: 'Teal', value: 'bg-teal-500' },
+            { name: 'Orange', value: 'bg-orange-500' },
+        ];
+
+        let selectedColor = 'bg-blue-500';
+        let deleteSubjectId = null;
+
+        // Initialize
+        function init() {
+            renderColorOptions();
+            renderSubjects();
+            updateStats();
+        }
+
+        // Render color options
+        function renderColorOptions() {
+            const container = document.getElementById('colorOptions');
+            container.innerHTML = colors.map(color => `
+                <button
+                    type="button"
+                    class="color-option ${color.value} ${color.value === selectedColor ? 'selected' : ''}"
+                    onclick="selectColor('${color.value}')"
+                    title="${color.name}"
+                ></button>
+            `).join('');
+        }
+
+        // Select color
+        function selectColor(color) {
+            selectedColor = color;
+            renderColorOptions();
+        }
+
+        // Render subjects
+        function renderSubjects() {
+            const grid = document.getElementById('subjectsGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (subjects.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            grid.innerHTML = subjects.map(subject => `
+                <div class="card bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="h-2 ${subject.color}"></div>
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 ${subject.color} rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                            </div>
+                            <button
+                                onclick="openDeleteModal('${subject.id}', '${subject.name}')"
+                                class="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2">${subject.name}</h3>
+                        <p class="text-slate-600 text-sm mb-6 line-clamp-2">${subject.description}</p>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                                <span class="text-slate-700 text-sm">${subject.students}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-slate-700 text-sm">${subject.hours}h</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalSubjects').textContent = subjects.length;
+            document.getElementById('totalStudents').textContent = subjects.reduce((sum, s) => sum + s.students, 0);
+            document.getElementById('totalHours').textContent = subjects.reduce((sum, s) => sum + s.hours, 0);
+        }
+
+        // Open add modal
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close add modal
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            document.getElementById('addSubjectForm').reset();
+            selectedColor = 'bg-blue-500';
+            renderColorOptions();
+        }
+
+        // Open delete modal
+        function openDeleteModal(id, name) {
+            deleteSubjectId = id;
+            document.getElementById('deleteSubjectName').textContent = name;
+            document.getElementById('deleteModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close delete modal
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            deleteSubjectId = null;
+        }
+
+        // Confirm delete
+        function confirmDelete() {
+            if (deleteSubjectId) {
+                subjects = subjects.filter(s => s.id !== deleteSubjectId);
+                renderSubjects();
+                updateStats();
+                closeDeleteModal();
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('addSubjectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('subjectName').value;
+            const description = document.getElementById('subjectDescription').value;
+            const students = parseInt(document.getElementById('subjectStudents').value) || 0;
+            const hours = parseInt(document.getElementById('subjectHours').value) || 0;
+
+            const newSubject = {
+                id: Date.now().toString(),
+                name,
+                description,
+                students,
+                hours,
+                color: selectedColor,
+            };
+
+            subjects.push(newSubject);
+            renderSubjects();
+            updateStats();
+            closeAddModal();
+        });
+
+        // Close modals on outside click
+        document.getElementById('addModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddModal();
+            }
+        });
+
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+
+        // Initialize the app
+        init();
+    </script>
+{% endblock %}
