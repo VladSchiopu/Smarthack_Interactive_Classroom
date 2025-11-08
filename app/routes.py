@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string, request, redirect, url_for, render_template, jsonify
+from flask import Blueprint, flash, render_template_string, request, redirect, url_for, render_template, jsonify
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
@@ -7,6 +7,16 @@ import os
 
 from . import db
 from .models import User
+
+# Upload files
+import uuid
+from werkzeug.utils import secure_filename
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "uploads")
+ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "mp4", "docx", "pptx"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 bp = Blueprint("main", __name__)
 
@@ -76,18 +86,58 @@ def logout():
 
 
 # ---- Pagină principală (Home) care redirecționează pe rol ----
-@bp.route("/home")
+@bp.route("/home", methods=["GET", "POST"])
 @login_required
 def home():
     role = current_user.role
 
+    user_folder = os.path.join(UPLOAD_FOLDER, str(current_user.id))
+    os.makedirs(user_folder, exist_ok=True)
+
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("Nu s-a selectat niciun fișier.")
+            return redirect(request.url)
+
+        file = request.files["file"]
+        title = request.form.get("title", "")
+
+        if file.filename == "":
+            flash("Nume de fișier invalid.")
+            return redirect(request.url)
+
+        if file and allowed_file(file.filename):
+            original_ext = file.filename.rsplit(".", 1)[1].lower()
+            title = request.form.get("title", "").strip()
+
+            # generăm un ID unic
+            unique_id = str(uuid.uuid4())
+
+            # construim un nume sigur
+            if title:
+                safe_title = secure_filename(title)
+                filename = f"{safe_title}_{unique_id}.{original_ext}"
+            else:
+                filename = f"{unique_id}.{original_ext}"
+
+            save_path = os.path.join(user_folder, filename)
+            file.save(save_path)
+
+            # poți loga și titlul în DB dacă vrei
+            flash(f"Fișierul '{title or filename}' a fost încărcat cu succes!")
+            return redirect(url_for("main.home"))
+        else:
+            flash("Tip de fișier nepermis.")
+            return redirect(request.url)
+
+
     if role == "Profesor":
         # Date dummy pentru profesor
         files = [
-            {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/doc.png"},
-            {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/presentation.png"},
-            {"title": "Introduction Video.mp4", "type": "Video", "img": "images/video.png"},
-            {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/doc.png"},
+            {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
+            {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/celldivision.jpeg"},
+            {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
+            {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/missiong.jpg"},
         ]
         return render_template("profesor.html", user=current_user, files=files)
 
@@ -118,20 +168,49 @@ def home():
         return redirect(url_for("main.login"))
 
 
+@bp.route("/dashboard")
+def dashboard():
+    # Dummy data — later we’ll pull from DB
+    files = [
+        {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
+        {"title": "Sales.pptx", "type": "Presentation", "img": "images/salesPpx.png"},
+        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
+        {"title": "Missing Latter.docx", "type": "Word Document", "img": "images/missiong.jpg"},
+        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/lab.jpg"},
+        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/celldivision.jpeg"},
+    ]
+    return render_template("dashboard.html", files=files, user=current_user)
 
 
+@bp.route("/teme_profesor")
+@login_required
+def teme_profesor():
+    # Asigură-te că doar profesorii văd asta
+    if current_user.role != "Profesor":
+        return redirect(url_for("main.home"))
 
-
-
-
-
-
-
-
-
-
-
-# ---- Codul pentru AI Chat (nemodificat) ----
+    # Date dummy pentru temele create de profesor
+    assignments = [
+        {"title": "Eseu Biologie", "due_date": "10 Nov 2025", "class": "Clasa a 10-a A", "submitted": 28, "total": 30},
+        {"title": "Test Matematică", "due_date": "12 Nov 2025", "class": "Clasa a 9-a B", "submitted": 15, "total": 25},
+        {"title": "Proiect Istorie", "due_date": "8 Nov 2025", "class": "Clasa a 10-a A", "submitted": 30, "total": 30},
+    ]
+    return render_template("teme_profesor.html", user=current_user, assignments=assignments)
+@bp.route("/orar")
+@login_required
+def orar():
+    # Date dummy pentru orar
+    # Folosim un dicționar pentru a păstra ordinea orelor
+    schedule_data = {
+        "08:00 - 08:50": ["Matematică", "Română", "Biologie", "Istorie", "Engleză"],
+        "09:00 - 09:50": ["Fizică", "Chimie", "Sport", "Română", "Matematică"],
+        "10:00 - 10:50": ["Biologie", "Istorie", "Geografie", "Fizică", "Informatică"],
+        "11:00 - 11:10": ["Pauză", "Pauză", "Pauză", "Pauză", "Pauză"],
+        "11:10 - 12:00": ["Istorie", "Engleză", "Franceză", "Sport", "Română"],
+        "12:10 - 13:00": ["Engleză", "Matematică", "Informatică", "Chimie", "Geografie"],
+        "13:10 - 14:00": ["Română", "Sport", "Dirigenție", "Muzică", "Franceză"],
+    }
+    return render_template("orar.html", user=current_user, schedule=schedule_data)
 
 OPENROUTER_API_KEY = "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"
 

@@ -13,9 +13,8 @@
     <ul class="menu">
         <li class="active"><a href="{{ url_for('main.home') }}">Teme</a></li>
         <li><a href="#">Notele mele</a></li>
-        <li><a href="#">Orar</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
         <li><a href="#">Fișiere curs</a></li>
-        <!-- Butonul de Chat AI adăugat aici -->
         <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
     </ul>
 
@@ -36,7 +35,7 @@
         <div class="assignment-card">
             <h4>{{ assignment.title }}</h4>
             <p>Dată limită: {{ assignment.due_date }}</p>
-            <span class="status-{{ assignment.status.lower().replace(' ', '-') }}">{{ assignment.status }}</span>
+            <span class="status status-{{ assignment.status.lower().replace(' ', '-') }}">{{ assignment.status }}</span>
         </div>
         {% endfor %}
 
@@ -45,41 +44,5 @@
         {% endif %}
     </div>
 </div>
-
-<!-- Adaugă un stil minim pentru cardurile de teme, dacă nu există deja în dashboard.css -->
-<style>
-.assignment-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-.assignment-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.assignment-card h4 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: #333;
-}
-.assignment-card p {
-    margin: 0;
-    color: #666;
-}
-.assignment-card span {
-    padding: 5px 10px;
-    border-radius: 12px;
-    font-weight: 500;
-    font-size: 0.85rem;
-}
-.status-în-progres { background-color: #fff8e1; color: #f59e0b; }
-.status-nefăcut { background-color: #fee2e2; color: #ef4444; }
-.status-trimis { background-color: #dcfce7; color: #22c55e; }
-</style>
 
 {% endblock %}

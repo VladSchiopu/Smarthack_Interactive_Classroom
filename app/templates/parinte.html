@@ -14,7 +14,6 @@
         <li class="active"><a href="{{ url_for('main.home') }}">Situație copil</a></li>
         <li><a href="#">Absențe</a></li>
         <li><a href="#">Mesagerie</a></li>
-        <!-- Butonul de Chat AI adăugat aici -->
         <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
     </ul>
 
@@ -43,40 +42,5 @@
         {% endif %}
     </div>
 </div>
-
-<!-- Adaugă un stil minim pentru cardurile de note, dacă nu există deja în dashboard.css -->
-<style>
-.grades-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-.grade-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.grade-card h4 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: #333;
-}
-.grade-badge {
-    background-color: #3b82f6;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: bold;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
 
 {% endblock %}
