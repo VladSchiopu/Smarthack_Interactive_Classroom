@@ -5,6 +5,38 @@
   },
   {
     "fericire": "Normal",
+    "varsta": 25
+  },
+  {
+    "fericire": "Nervos",
+    "varsta": 25
+  },
+  {
+    "fericire": "Fericit",
+    "varsta": 0
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 7
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 14
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 17
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 17
+  },
+  {
+    "fericire": "Fericit",
+    "varsta": 60
+  },
+  {
+    "fericire": "Normal",
     "varsta": 20
   },
   {
@@ -12,7 +44,15 @@
     "varsta": 10
   },
   {
+    "fericire": "Normal",
+    "varsta": 12
+  },
+  {
     "fericire": "Fericit",
+    "varsta": 14
+  },
+  {
+    "fericire": "Nervos",
     "varsta": 25
   }
 ]

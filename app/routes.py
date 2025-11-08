@@ -258,6 +258,7 @@ def append_to_log(entry):
         print("Error writing log file:", e)
 
 
+
 # ---- Pagina de chat ----
 @bp.route("/chat", methods=["GET"])
 @login_required  # E bine să fie protejată
@@ -265,68 +266,91 @@ def chat_page():
     return render_template("chat.html")
 
 
-# ---- Endpoint API pentru chat ----
-@bp.route("/api/query", methods=["POST"])
-@login_required  # E bine să fie protejată
-def query_model():
-    user_msg = request.json.get("message", "")
-
-    extractor_prompt = [
-        {
-            "role": "system",
-            "content":
-                "Primești text de la utilizator. Extrage DOAR parametrii:\n"
-                "- Fericire (Nervos, Fericit, Trist, Plictisit, Normal, Chef_de_bataie)\n"
-                "- Varsta (0–100)\n"
-                'Răspunde STRICT în JSON valid: { "fericire": "<valoare>", "varsta": numar }'
-        },
-        {"role": "user", "content": user_msg}
+@bp.route("/api/generate_report", methods=["POST"])
+@login_required
+def generate_report():
+    # 🔹 Date hardcodate pentru test
+    materie = "Matematică"
+    cerinta = "Rezolvă exercițiile despre fracții, amplificări și simplificări."
+    lista_feedbackuri = [
+        {"nota": 7.5, "feedback": "Ai făcut corect exercițiile legate de înmulțiri și ecuații, dar nu ai făcut fracțiile."},
+        {"nota": 5, "feedback": "Ai făcut corect ecuațiile, dar nu ai făcut exercițiile nici de la amplificări, nici de la simplificări."}
     ]
 
-    extractor_output = call_model(extractor_prompt)
-    default_params = {"fericire": "Normal", "varsta": 25}
+    # 🔹 Prompt pentru generarea raportului
+    raport_prompt = [
+        {
+            "role": "system",
+            "content": (
+                "Ești un asistent care analizează evoluția unui elev la o materie. "
+                "Primești o listă de feedbackuri sub forma [(nota, feedback)] și trebuie să generezi un raport complet. "
+                "Considera ultimul feedback ca cel de la assignmentul curent"
+                "Raportul trebuie să detalieze:\n"
+                "- care au fost principalele probleme repetate,\n"
+                "- ce a îmbunătățit copilul de-a lungul timpului,\n"
+                "- dacă performanța s-a îmbunătățit sau s-a înrăutățit (în funcție de note),\n"
+                "- ce ar trebui să revizuiască pentru viitoarele assignmenturi."
+            )
+        },
+        {
+            "role": "user",
+            "content": f"Materie: {materie}\nCerinta: {cerinta}\nFeedbackuri: {lista_feedbackuri}"
+        }
+    ]
 
-    try:
-        extracted = json.loads(extractor_output) if extractor_output else default_params
-        allowed = ["Nervos", "Fericit", "Trist", "Plictisit", "Normal", "Chef_de_bataie"]
-        fer = extracted.get("fericire", "Normal").strip().capitalize()
-        fer_norm = fer if fer in allowed else "Normal"
-        try:
-            var_int = max(0, min(100, int(extracted.get("varsta", 25))))
-        except:
-            var_int = 25
-        extracted = {"fericire": fer_norm, "varsta": var_int}
-    except:
-        extracted = default_params
+    raport_text = call_model(raport_prompt)
+    if not raport_text:
+        raport_text = "Eroare: nu s-a putut genera raportul."
 
-    append_to_log(extracted)
-    current_log = read_log()
+    # 🔹 Salvează în reports.txt
+    with open("reports.txt", "a", encoding="utf-8") as f:
+        f.write(f"\n=== RAPORT pentru {materie} ===\n{raport_text}\n\n")
 
+    return jsonify({"status": "ok"})
+
+
+@bp.route("/api/query", methods=["POST"])
+@login_required
+def query_model():
+    data = request.json
+    user_msg = data.get("message", "")
+
+    # 🔹 Date hardcodate pentru test (până când vor fi primite din UI)
+    materie = "Matematică"
+    cerinta = "Rezolvă exercițiile despre fracții, amplificări și simplificări."
+    lista_feedbackuri = [
+        {"nota": 7.5, "feedback": "Ai făcut corect exercițiile legate de înmulțiri și ecuații, dar nu ai făcut fracțiile."},
+        {"nota": 5, "feedback": "Ai făcut corect ecuațiile, dar nu ai făcut exercițiile nici de la amplificări, nici de la simplificări."}
+    ]
+
+
+    # 🔹 Prompt pentru chatbot
     responder_prompt = [
         {
             "role": "system",
             "content": (
-                "Ești o IA care răspunde întrebărilor utilizatorului. "
-                "Adaptează tonul în funcție de parametrii:\n"
-                "- Nervos → răspunde iritat\n"
-                "- Fericit → vesel și prietenos\n"
-                "- Trist → melancolic\n"
-                "- Plictisit → apatic\n"
-                "- Normal → neutru\n"
-                "- Chef_de_bataie → provocator și furios"
+                "Ești un chatbot pentru elevi din școala primară. "
+                "Primești materia, cerința assignmentului, feedbackul profesorului și nota elevului. "
+                "Explică elevului într-un mod prietenos cum ar fi trebuit rezolvat assignmentul, "
+                "răspunde la întrebări legate de cerință și oferă încurajări. "
+                "Ține cont și de feedbackurile anterioare pentru a-l ajuta să înțeleagă ce repetă greșit sau unde s-a îmbunătățit."
+                "Considera ultimul feedback ca cel de la assignmentul curent"
             )
         },
-        {"role": "system",
-         "content": f"Context intern: Fericire={extracted['fericire']}, Varsta={extracted['varsta']}."},
+        {
+            "role": "system",
+            "content": (
+                f"Context intern:\n"
+                f"Materie={materie}\n"
+                f"Cerinta={cerinta}\n"
+                f"Feedbackuri_anterioare={lista_feedbackuri}"
+            )
+        },
         {"role": "user", "content": user_msg}
     ]
 
     final_answer = call_model(responder_prompt)
     if not final_answer:
-        final_answer = "Eroare: modelul nu a returnat răspuns."
+        final_answer = "Nu am reușit să răspund, te rog mai încearcă."
 
-    return jsonify({
-        "response": final_answer,
-        "params": extracted,
-        "log": current_log
-    })
+    return jsonify({"response": final_answer})
