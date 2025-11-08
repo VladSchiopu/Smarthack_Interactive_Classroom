@@ -8,18 +8,24 @@ import os
 from . import db
 from .models import User
 
-
 bp = Blueprint("main", __name__)
+
 
 # ---- Rutele tale originale ----
 @bp.route("/", methods=["GET"])
-def hello():
-    return "Hello, World!"
+def index():
+    # Redirecționează către login dacă nu e logat, sau către home dacă este
+    if current_user.is_authenticated:
+        return redirect(url_for("main.home"))
+    return redirect(url_for("main.login"))
 
 
 # ---- Înregistrare ----
 @bp.route("/register", methods=["GET", "POST"])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.home"))
+
     if request.method == "POST":
         email = request.form.get("email")
         name = request.form.get("name")
@@ -27,7 +33,8 @@ def register():
         role = request.form.get("role")
 
         if User.query.filter_by(email=email).first():
-            return "Email deja folosit!"
+            # Ar fi bine să trimiți un mesaj flash aici
+            return redirect(url_for("main.register"))
 
         user = User(name=name, email=email, role=role)
         user.set_password(password)
@@ -41,15 +48,21 @@ def register():
 # ---- Login ----
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.home"))
+
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
         user = User.query.filter_by(email=email).first()
-        
+
         if user and user.check_password(password):
             login_user(user)
+            # Redirecționează către 'home' care va gestiona rolul
             return redirect(url_for("main.home"))
-        return "Date de autentificare incorecte!"
+
+            # Ar fi bine să trimiți un mesaj flash aici
+        return redirect(url_for("main.login"))
 
     return render_template("login.html")
 
@@ -61,21 +74,48 @@ def logout():
     logout_user()
     return redirect(url_for("main.login"))
 
+
+# ---- Pagină principală (Home) care redirecționează pe rol ----
 @bp.route("/home")
 @login_required
 def home():
-    email = current_user.id
-    name = current_user.name
     role = current_user.role
 
-    if role == "Elev":
-        return "Esti elev!"
-    elif role == "Profesor":
-        return "Esti profesor!"
+    if role == "Profesor":
+        # Date dummy pentru profesor
+        files = [
+            {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/doc.png"},
+            {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/presentation.png"},
+            {"title": "Introduction Video.mp4", "type": "Video", "img": "images/video.png"},
+            {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/doc.png"},
+        ]
+        return render_template("profesor.html", user=current_user, files=files)
+
+    elif role == "Elev":
+        # Date dummy pentru elev
+        assignments = [
+            {"title": "Eseu Biologie", "due_date": "10 Nov 2025", "status": "În progres"},
+            {"title": "Test Matematică", "due_date": "12 Nov 2025", "status": "Nefăcut"},
+            {"title": "Proiect Istorie", "due_date": "8 Nov 2025", "status": "Trimis"},
+        ]
+        return render_template("elev.html", user=current_user, assignments=assignments)
+
     elif role == "Parinte":
-        return "Esti parinte!"
+        # Date dummy pentru părinte
+        child_info = {
+            "name": "Popescu Ionuț (Elev)",
+            "grades": [
+                {"subject": "Matematică", "grade": "10"},
+                {"subject": "Română", "grade": "9"},
+                {"subject": "Biologie", "grade": "10"},
+            ]
+        }
+        return render_template("parinte.html", user=current_user, child=child_info)
+
     else:
-        return "Esti animal"
+        # Un rol neașteptat
+        logout_user()
+        return redirect(url_for("main.login"))
 
 
 
@@ -98,7 +138,6 @@ OPENROUTER_API_KEY = "sk-or-v1-3bec54de632958e2f40278bb8fc0db3a1b4f64be1ac7f46ec
 LOG_FILENAME = "params_log.json"
 LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", LOG_FILENAME)
 
-# Asigurăm logul
 if not os.path.exists(LOG_PATH):
     with open(LOG_PATH, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
@@ -142,12 +181,14 @@ def append_to_log(entry):
 
 # ---- Pagina de chat ----
 @bp.route("/chat", methods=["GET"])
+@login_required  # E bine să fie protejată
 def chat_page():
     return render_template("chat.html")
 
 
 # ---- Endpoint API pentru chat ----
 @bp.route("/api/query", methods=["POST"])
+@login_required  # E bine să fie protejată
 def query_model():
     user_msg = request.json.get("message", "")
 
