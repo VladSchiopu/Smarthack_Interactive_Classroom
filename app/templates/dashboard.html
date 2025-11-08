@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>Science Teacher</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+        <li><a href="#">Dashboard</a></li>
+        <li><a href="#">Students</a></li>
+        <li><a href="#">Assignments</a></li>
+        <li class="active"><a href="#">Files</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Grade 10 - Biology</h2>
+        <button class="add-file">+ Add File</button>
+    </div>
+
+    <div class="subheader">
+        <div>Sort by: <strong>Date Added</strong></div>
+        <div>Filter by: <strong>All Types</strong></div>
+    </div>
+
+    <div class="file-grid">
+        {% for file in files %}
+        <div class="file-card">
+            <img src="{{ url_for('static', filename=file.img) }}" alt="">
+            <h4>{{ file.title }}</h4>
+            <p>{{ file.type }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
