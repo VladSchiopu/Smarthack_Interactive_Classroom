@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string, request, redirect, url_for, render_template, jsonify
+from flask import Blueprint, flash, render_template_string, request, redirect, url_for, render_template, jsonify
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
@@ -7,6 +7,16 @@ import os
 
 from . import db
 from .models import User
+
+# Upload files
+import uuid
+from werkzeug.utils import secure_filename
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "uploads")
+ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "mp4", "docx", "pptx"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 bp = Blueprint("main", __name__)
 
@@ -76,10 +86,50 @@ def logout():
 
 
 # ---- Pagină principală (Home) care redirecționează pe rol ----
-@bp.route("/home")
+@bp.route("/home", methods=["GET", "POST"])
 @login_required
 def home():
     role = current_user.role
+
+    user_folder = os.path.join(UPLOAD_FOLDER, str(current_user.id))
+    os.makedirs(user_folder, exist_ok=True)
+
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("Nu s-a selectat niciun fișier.")
+            return redirect(request.url)
+
+        file = request.files["file"]
+        title = request.form.get("title", "")
+
+        if file.filename == "":
+            flash("Nume de fișier invalid.")
+            return redirect(request.url)
+
+        if file and allowed_file(file.filename):
+            original_ext = file.filename.rsplit(".", 1)[1].lower()
+            title = request.form.get("title", "").strip()
+
+            # generăm un ID unic
+            unique_id = str(uuid.uuid4())
+
+            # construim un nume sigur
+            if title:
+                safe_title = secure_filename(title)
+                filename = f"{safe_title}_{unique_id}.{original_ext}"
+            else:
+                filename = f"{unique_id}.{original_ext}"
+
+            save_path = os.path.join(user_folder, filename)
+            file.save(save_path)
+
+            # poți loga și titlul în DB dacă vrei
+            flash(f"Fișierul '{title or filename}' a fost încărcat cu succes!")
+            return redirect(url_for("main.home"))
+        else:
+            flash("Tip de fișier nepermis.")
+            return redirect(request.url)
+
 
     if role == "Profesor":
         # Date dummy pentru profesor
