@@ -1,51 +1,67 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Chat AI</h2>
+<h2>Chat AI Educațional (Demo)</h2>
+
+<div id="param-container">
+    <button id="reportButton" onclick="generateReport()">📄 Generează Raport (test)</button>
+</div>
+
+<hr>
+
 <div id="chat-container">
     <div id="chat-history">
         <div class="message bot">
-            <div class="content">Bună! Sunt asistentul tău AI. Cum te pot ajuta azi?</div>
+            <div class="content">
+                Bună! Sunt asistentul tău AI. Apasă „Generează Raport” pentru a începe.
+            </div>
         </div>
     </div>
     <div id="input-area">
-        <textarea id="userInput" placeholder="Scrie mesajul tău..." rows="1"></textarea>
-        <button id="sendButton" onclick="sendMessage()">➤</button>
+        <textarea id="userInput" placeholder="Scrie mesajul tău..." rows="1" disabled></textarea>
+        <button id="sendButton" onclick="sendMessage()" disabled>➤</button>
     </div>
 </div>
 
-<!-- Script-ul este acum în interiorul paginii -->
 <script>
-    // Ajustează înălțimea textului
     const textarea = document.getElementById('userInput');
     textarea.addEventListener('input', () => {
         textarea.style.height = 'auto';
         textarea.style.height = (textarea.scrollHeight) + 'px';
     });
-    textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+
+    async function generateReport() {
+        try {
+            const response = await fetch("{{ url_for('main.generate_report') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            });
+
+            const data = await response.json();
+            if (data.status === "ok") {
+                alert("Raport generat și salvat în reports.txt!");
+                document.getElementById("userInput").disabled = false;
+                document.getElementById("sendButton").disabled = false;
+            }
+        } catch (err) {
+            alert("Eroare la generarea raportului: " + err.message);
         }
-    });
+    }
 
     async function sendMessage() {
         const userInput = textarea.value.trim();
         if (userInput === "") return;
 
         const chatHistory = document.getElementById('chat-history');
-
-        // Adaugă mesajul utilizatorului
         const userMessageDiv = document.createElement('div');
         userMessageDiv.className = 'message user';
         userMessageDiv.innerHTML = `<div class="content">${userInput}</div>`;
         chatHistory.appendChild(userMessageDiv);
 
-        // Curăță input-ul și resetează înălțimea
         textarea.value = '';
         textarea.style.height = 'auto';
 
-        // Adaugă un indicator de "tasting"
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message bot';
         typingDiv.innerHTML = `<div class="content" id="typing-indicator">...</div>`;
@@ -54,33 +70,19 @@
 
         try {
             const response = await fetch("{{ url_for('main.query_model') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: userInput }),
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userInput })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
-            
-            // Actualizează indicatorul de "tasting" cu răspunsul real
-            const botResponseContent = document.getElementById('typing-indicator');
-            botResponseContent.textContent = data.response || "Nu am primit un răspuns.";
-            botResponseContent.id = ''; // Elimină id-ul ca să nu fie selectat din nou
+            document.getElementById('typing-indicator').textContent = data.response;
 
         } catch (error) {
-            console.error('Error fetching AI response:', error);
-            const errorContent = document.getElementById('typing-indicator');
-            errorContent.textContent = "Hopa! Ceva nu a funcționat. Te rog încearcă din nou.";
-            errorContent.id = '';
-        } finally {
-            // Scroll la final
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+            document.getElementById('typing-indicator').textContent = "Eroare la comunicarea cu AI-ul.";
         }
+
+        chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 </script>
 

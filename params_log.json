@@ -42,5 +42,17 @@
   {
     "fericire": "Fericit",
     "varsta": 10
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 12
+  },
+  {
+    "fericire": "Fericit",
+    "varsta": 14
+  },
+  {
+    "fericire": "Nervos",
+    "varsta": 25
   }
 ]
