@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title or "Dashboard" }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <title>{{ title or "ClassroomApp" }}</title>
+
+    {% if request.path.startswith('/login')
+          or request.path.startswith('/register') %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    {% else %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    {% endif %}
 </head>
 <body>
     {% block content %}{% endblock %}
