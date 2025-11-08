@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string, request, redirect, url_for
+from flask import Blueprint, render_template_string, request, redirect, url_for, render_template
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from .users_db import users, add_user, get_user
@@ -72,3 +72,19 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("main.login"))
+
+
+@bp.route("/dashboard")
+def dashboard():
+    # Dummy data — later we’ll pull from DB
+    files = [
+        {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/doc.png"},
+        {"title": "Photosynthesis Slides.pptx", "type": "Presentation", "img": "images/presentation.png"},
+        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/video.png"},
+        {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/doc.png"},
+        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/doc.png"},
+        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/video.png"},
+        {"title": "Genetics Worksheet.pdf", "type": "PDF Document", "img": "images/doc.png"},
+        {"title": "Final Project Rubric.docx", "type": "Word Document", "img": "images/doc.png"},
+    ]
+    return render_template("dashboard.html", files=files, user=current_user)
