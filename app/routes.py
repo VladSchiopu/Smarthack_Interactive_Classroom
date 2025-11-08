@@ -11,15 +11,56 @@ from .models import User
 # Upload files
 import uuid
 from werkzeug.utils import secure_filename
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "uploads")
+APP_FOLDER = os.path.dirname(__file__)
+STATIC_FOLDER = os.path.join(APP_FOLDER, "static")
+UPLOAD_FOLDER = os.path.join(STATIC_FOLDER, "uploads")
 ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "mp4", "docx", "pptx"}
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Mapare extensii la tip și imagine (cale relativă pentru template)
+FILE_TYPES = {
+    "txt": {"type": "Text File", "img": "images/example.jpg"},
+    "pdf": {"type": "PDF Document", "img": "images/example.jpg"},
+    "png": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "jpg": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "jpeg": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "gif": {"type": "Image", "img": "images/celldivision.jpeg"},
+    "mp4": {"type": "Video", "img": "images/matematica.jpg"},
+    "docx": {"type": "Word Document", "img": "images/missiong.jpg"},
+    "pptx": {"type": "Presentation", "img": "images/celldivision.jpeg"},
+}
+
+def get_files_from_folder(folder_path, user_id):
+    files = []
+    if not os.path.exists(folder_path):
+        return files
+
+    for filename in os.listdir(folder_path):
+        filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(filepath):
+            ext = filename.rsplit(".", 1)[-1].lower()
+            file_info = FILE_TYPES.get(ext, {"type": "Unknown", "img": "images/example.jpg"})
+
+            # Calea către fișierul real pentru HTML
+            img_path = url_for('main.uploaded_file', user_id=user_id, filename=filename)
+
+            files.append({
+                "title": filename,           # numele fișierului
+                "type": file_info["type"],
+                "img": img_path              # imaginea/fișierul real
+            })
+    return files
 
 bp = Blueprint("main", __name__)
 
+from flask import send_from_directory
+@bp.route('/uploads/<int:user_id>/<filename>')
+@login_required
+def uploaded_file(user_id, filename):
+    user_folder = os.path.join(UPLOAD_FOLDER, str(user_id))
+    return send_from_directory(user_folder, filename)
 
 # ---- Rutele tale originale ----
 @bp.route("/", methods=["GET"])
@@ -139,6 +180,7 @@ def home():
             {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
             {"title": "Syllabus_Fall_2024.docx", "type": "Word Document", "img": "images/missiong.jpg"},
         ]
+        files += get_files_from_folder(user_folder, current_user.id)
         return render_template("profesor.html", user=current_user, files=files)
 
     elif role == "Elev":
