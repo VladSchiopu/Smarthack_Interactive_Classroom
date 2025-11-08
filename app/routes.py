@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from .users_db import users, add_user, get_user
+from .database import users, add_user, get_user
 
 bp = Blueprint("main", __name__)
 
