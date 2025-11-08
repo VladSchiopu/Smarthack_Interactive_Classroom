@@ -1,20 +1,15 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, render_template, jsonify
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from .users_db import users, add_user, get_user
 import requests
 import json
 import os
 
+from . import db
+from .models import User
+
 
 bp = Blueprint("main", __name__)
-
-# Model simplu pentru utilizatori
-class User(UserMixin):
-    def __init__(self, email, name, role):
-        self.id = email
-        self.name = name
-        self.role = role
 
 # ---- Rutele tale originale ----
 @bp.route("/", methods=["GET"])
@@ -26,14 +21,18 @@ def hello():
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        email = request.form["email"]
-        name = request.form["name"]
-        password = request.form["password"]
+        email = request.form.get("email")
+        name = request.form.get("name")
+        password = request.form.get("password")
         role = request.form.get("role")
 
-        if get_user(email):
+        if User.query.filter_by(email=email).first():
             return "Email deja folosit!"
-        add_user(email, name, password, role)
+
+        user = User(name=name, email=email, role=role)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
         return redirect(url_for("main.login"))
 
     return render_template("register.html")
@@ -43,13 +42,13 @@ def register():
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-        user = get_user(email)
-
-        if user and check_password_hash(user["password"], password):
-            login_user(User(email, user["name"], user["role"]))
-            return redirect(url_for("main.hello"))
+        email = request.form.get("email")
+        password = request.form.get("password")
+        user = User.query.filter_by(email=email).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for("main.home"))
         return "Date de autentificare incorecte!"
 
     return render_template("login.html")
