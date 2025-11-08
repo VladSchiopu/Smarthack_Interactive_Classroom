@@ -1,26 +1,87 @@
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-    <meta charset="UTF-8">
-    <title>Demo Polaris Alpha</title>
-    <style>
-        body { font-family: Arial; max-width: 600px; margin: 40px auto; }
-        textarea { width: 100%; height: 120px; margin-bottom: 10px; }
-        button { padding: 10px 20px; font-size: 16px; }
-        .output { background: #f0f0f0; padding: 15px; white-space: pre-wrap; }
-    </style>
-</head>
-<body>
-    <h2>Demo Polaris Alpha via Flask</h2>
+{% extends "base.html" %}
+{% block content %}
 
-    <label>Input utilizator:</label>
-    <textarea id="userInput"></textarea>
+<h2>Chat AI</h2>
+<div id="chat-container">
+    <div id="chat-history">
+        <div class="message bot">
+            <div class="content">Bună! Sunt asistentul tău AI. Cum te pot ajuta azi?</div>
+        </div>
+    </div>
+    <div id="input-area">
+        <textarea id="userInput" placeholder="Scrie mesajul tău..." rows="1"></textarea>
+        <button id="sendButton" onclick="sendMessage()">➤</button>
+    </div>
+</div>
 
-    <button onclick="sendToServer()">Trimite</button>
+<!-- Script-ul este acum în interiorul paginii -->
+<script>
+    // Ajustează înălțimea textului
+    const textarea = document.getElementById('userInput');
+    textarea.addEventListener('input', () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    });
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
 
-    <h3>Răspuns model:</h3>
-    <div class="output" id="modelResponse">Răspunsul apare aici...</div>
+    async function sendMessage() {
+        const userInput = textarea.value.trim();
+        if (userInput === "") return;
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>
+        const chatHistory = document.getElementById('chat-history');
+
+        // Adaugă mesajul utilizatorului
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'message user';
+        userMessageDiv.innerHTML = `<div class="content">${userInput}</div>`;
+        chatHistory.appendChild(userMessageDiv);
+
+        // Curăță input-ul și resetează înălțimea
+        textarea.value = '';
+        textarea.style.height = 'auto';
+
+        // Adaugă un indicator de "tasting"
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.innerHTML = `<div class="content" id="typing-indicator">...</div>`;
+        chatHistory.appendChild(typingDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        try {
+            const response = await fetch("{{ url_for('main.query_model') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: userInput }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            // Actualizează indicatorul de "tasting" cu răspunsul real
+            const botResponseContent = document.getElementById('typing-indicator');
+            botResponseContent.textContent = data.response || "Nu am primit un răspuns.";
+            botResponseContent.id = ''; // Elimină id-ul ca să nu fie selectat din nou
+
+        } catch (error) {
+            console.error('Error fetching AI response:', error);
+            const errorContent = document.getElementById('typing-indicator');
+            errorContent.textContent = "Hopa! Ceva nu a funcționat. Te rog încearcă din nou.";
+            errorContent.id = '';
+        } finally {
+            // Scroll la final
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    }
+</script>
+
+{% endblock %}
