@@ -281,6 +281,12 @@ def dashboard():
 def pdashboard():
    return render_template("pdashboard.html", user=current_user)
 
+
+@bp.route('/students')
+def students_dashboard():
+    students = Student.query.all()
+    return render_template('listaElevi.html', students=students, user=current_user)
+
 @bp.route("/test")
 def test():
    return render_template("test.html", user=current_user)
