@@ -118,7 +118,20 @@ def home():
         return redirect(url_for("main.login"))
 
 
-# ---- Codul pentru AI Chat (nemodificat) ----
+
+@bp.route("/dashboard")
+def dashboard():
+    # Dummy data — later we’ll pull from DB
+    files = [
+        {"title": "Chapter 1 Reading.pdf", "type": "PDF Document", "img": "images/example.jpg"},
+        {"title": "Sales.pptx", "type": "Presentation", "img": "images/salesPpx.png"},
+        {"title": "Introduction Video.mp4", "type": "Video", "img": "images/matematica.jpg"},
+        {"title": "Missing Latter.docx", "type": "Word Document", "img": "images/missiong.jpg"},
+        {"title": "Lab Safety Rules.pdf", "type": "PDF Document", "img": "images/lab.jpg"},
+        {"title": "Cell Division Animation.mp4", "type": "Video", "img": "images/celldivision.jpeg"},
+    ]
+    return render_template("dashboard.html", files=files, user=current_user)
+
 
 OPENROUTER_API_KEY = "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"
 
