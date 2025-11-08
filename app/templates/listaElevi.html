@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* Specific styles for the student list table to maintain original look 
+       while sitting inside the new dashboard layout */
+    .table-container {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+        border: 1px solid #eee;
+        margin-top: 20px;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .custom-table th {
+        text-align: left;
+        background-color: white;
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 15px 25px;
+    }
+
+    .custom-table td {
+        padding: 15px 25px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f8f9fa;
+        color: #343a40;
+    }
+
+    .student-name-cell {
+        display: flex;
+        align-items: center;
+    }
+
+    .student-name-cell img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        margin-right: 15px;
+        background-color: #e9ecef;
+    }
+    
+    .text-muted { color: #6c757d; }
+    .course-badge { display: flex; align-items: center; font-size: 1.1rem; color: #007867; }
+    .course-badge i { margin-right: 8px; }
+</style>
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+    {% if user.role == 'Profesor' %}
+        <li><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('main.teme_profesor') }}">Teme</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li class="active"><a href="#">Elevi</a></li>
+    {% elif user.role == 'Elev' %}
+        <li><a href="{{ url_for('main.home') }}">Teme</a></li>
+        <li><a href="#">Notele mele</a></li>
+        <li><a href="{{ url_for('main.orar') }}">Orar</a></li>
+        <li><a href="#">Fișiere curs</a></li>
+    {% elif user.role == 'Parinte' %}
+        <li><a href="{{ url_for('main.home') }}">Situație copil</a></li>
+        <li><a href="#">Absențe</a></li>
+        <li><a href="#">Mesagerie</a></li>
+    {% endif %}
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Listă Elevi</h2>
+        <div class="course-badge">
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Nume</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>
+                        <div class="student-name-cell">
+                            <img src="https://ui-avatars.com/api/?name={{ student.user.name|urlencode }}&background=random&rounded=true" alt="Avatar">
+                            <strong>{{ student.user.name }}</strong>
+                        </div>
+                    </td>
+                    <td class="text-muted">{{ student.user.email }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" style="text-align: center; padding: 20px;" class="text-muted">
+                        Nu au fost găsiți elevi.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
