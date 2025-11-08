@@ -34,5 +34,13 @@
   {
     "fericire": "Fericit",
     "varsta": 60
+  },
+  {
+    "fericire": "Normal",
+    "varsta": 20
+  },
+  {
+    "fericire": "Fericit",
+    "varsta": 10
   }
 ]

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+        <li class="active"><a href="{{ url_for('main.home') }}">Dashboard</a></li>
+        <li><a href="#">Elevi</a></li>
+        <li><a href="#">Teme</a></li>
+        <li><a href="#">Fișiere</a></li>
+        <!-- Butonul de Chat AI adăugat aici -->
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+
+<div class="main">
+    <div class="header">
+        <h2>Clasa a 10-a - Biologie</h2>
+        <button class="add-file">+ Adaugă Fișier</button>
+    </div>
+
+    <div class="subheader">
+        <div>Sortare după: <strong>Dată adăugare</strong></div>
+        <div>Filtrare după: <strong>Toate tipurile</strong></div>
+    </div>
+
+    <div class="file-grid">
+        {% for file in files %}
+        <div class="file-card">
+            <img src="{{ url_for('static', filename=file.img) }}" alt="">
+            <h4>{{ file.title }}</h4>
+            <p>{{ file.type }}</p>
+        </div>
+        {% endfor %}
+
+        {% if not files %}
+        <p>Nu există fișiere de afișat.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
