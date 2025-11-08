@@ -127,3 +127,30 @@ footer {
   color: #9ca3af;
   margin-top: 24px;
 }
+
+/* Dropdown (select) */
+select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  outline: none;
+  background-color: #ffffff;
+  color: #111827;
+  appearance: none; /* elimină săgeata implicită în unele browsere */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+select:focus {
+  border-color: #2563eb;
+}
+
+/* Opțiuni dropdown */
+select option {
+  font-size: 14px;
+  color: #111827;
+}

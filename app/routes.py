@@ -11,9 +11,10 @@ bp = Blueprint("main", __name__)
 
 # Model simplu pentru utilizatori
 class User(UserMixin):
-    def __init__(self, email, name):
+    def __init__(self, email, name, role):
         self.id = email
         self.name = name
+        self.role = role
 
 # ---- Rutele tale originale ----
 @bp.route("/", methods=["GET"])
@@ -28,10 +29,11 @@ def register():
         email = request.form["email"]
         name = request.form["name"]
         password = request.form["password"]
+        role = request.form.get("role")
 
         if get_user(email):
             return "Email deja folosit!"
-        add_user(email, name, password)
+        add_user(email, name, password, role)
         return redirect(url_for("main.login"))
 
     return render_template("register.html")
@@ -46,7 +48,7 @@ def login():
         user = get_user(email)
 
         if user and check_password_hash(user["password"], password):
-            login_user(User(email, user["name"]))
+            login_user(User(email, user["name"], user["role"]))
             return redirect(url_for("main.hello"))
         return "Date de autentificare incorecte!"
 
@@ -59,6 +61,23 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("main.login"))
+
+@bp.route("/home")
+@login_required
+def home():
+    email = current_user.id
+    name = current_user.name
+    role = current_user.role
+
+    if role == "Elev":
+        return "Esti elev!"
+    elif role == "Profesor":
+        return "Esti profesor!"
+    elif role == "Parinte":
+        return "Esti parinte!"
+    else:
+        return "Esti animal"
+
 
 
 @bp.route("/dashboard")

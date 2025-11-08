@@ -2,10 +2,11 @@ from werkzeug.security import generate_password_hash
 
 users = {}  # {"email": {"name": "...", "password": "..."}}
 
-def add_user(email, name, password):
+def add_user(email, name, password, role):
     users[email] = {
         "name": name,
-        "password": generate_password_hash(password)
+        "password": generate_password_hash(password),
+        "role": role
     }
 
 def get_user(email):
@@ -16,4 +17,4 @@ def load_user(email):
     if not user:
         return None
     from .routes import User
-    return User(email, user["name"])
+    return User(email, user["name"], user["role"])
