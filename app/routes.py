@@ -871,40 +871,80 @@ def corectare_tema(id_submission):
     if current_user.role != "Profesor":
         flash("Acces nepermis.", "error")
         return redirect(url_for("main.home"))
+
     submission = Submission.query.get_or_404(id_submission)
+
+    # VERIFICARE: Are submission răspuns?
+    if not submission.content or submission.content.strip() == "":
+        flash("Atenție: Elevul nu a furnizat un răspuns text pentru această temă.", "warning")
+
     if request.method == "POST":
         grade = request.form.get("grade")
         feedback_text = request.form.get("feedback_text")
+
         if not grade or not feedback_text:
             flash("Nota și feedback-ul sunt obligatorii.", "error")
             return redirect(url_for('main.corectare_tema', id_submission=id_submission))
+
+        try:
+            grade = float(grade)
+            if grade < 0 or grade > 10:
+                flash("Nota trebuie să fie între 0 și 10.", "error")
+                return redirect(url_for('main.corectare_tema', id_submission=id_submission))
+        except ValueError:
+            flash("Nota trebuie să fie un număr valid.", "error")
+            return redirect(url_for('main.corectare_tema', id_submission=id_submission))
+
+        # Verifică dacă există deja feedback
         existing_feedback = Feedback.query.filter_by(submission_id=id_submission).first()
-        feedback_obj = None
+
         try:
             if existing_feedback:
+                print(f"📝 Actualizare feedback existent ID: {existing_feedback.id}")
                 existing_feedback.grade = grade
                 existing_feedback.feedback_text = feedback_text
                 feedback_obj = existing_feedback
             else:
+                print(f"📝 Creare feedback NOU pentru submission {id_submission}")
                 new_feedback = Feedback(
                     submission_id=id_submission,
                     grade=grade,
                     feedback_text=feedback_text
                 )
                 db.session.add(new_feedback)
+                db.session.flush()  # Obține ID-ul înainte de commit
                 feedback_obj = new_feedback
+                print(f"✅ Feedback creat cu ID: {feedback_obj.id}")
+
+            # Update status submission
             submission.status = "Corectat"
             db.session.commit()
+
+            print(f"\n🤖 Încep generare raport AI...")
+            print(f"  - Feedback ID: {feedback_obj.id}")
+            print(f"  - Submission ID: {feedback_obj.submission_id}")
+            print(f"  - Student ID: {submission.student_id}")
+
+            # Generează raport AI
             try:
                 generate_ai_report_for_feedback(feedback_obj)
-                flash("Feedback salvat și raport AI generat!", "success")
+                flash("Feedback salvat și raport AI generat cu succes!", "success")
             except Exception as e:
-                print(f"Eroare la generarea raportului AI: {e}")
+                print(f"❌ Eroare la generarea raportului AI: {e}")
+                import traceback
+                traceback.print_exc()
                 flash("Feedback salvat, dar a eșuat generarea raportului AI.", "warning")
+
             return redirect(url_for('main.detaliu_tema_profesor', id_tema=submission.assignment_id))
+
         except Exception as e:
             db.session.rollback()
-            flash(f"Eroare la salvarea feedback-ului: {e}")
+            print(f"❌ Eroare la salvare: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f"Eroare la salvarea feedback-ului: {e}", "error")
+
+    # GET: afișează formular
     return render_template("corectare_tema.html", user=current_user, submission=submission)
 
 
@@ -917,18 +957,47 @@ if not os.path.exists(LOG_PATH):
 
 
 def call_model(messages):
+    """Trimite request la OpenRouter API"""
     url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": "openrouter/polaris-alpha", "messages": messages}
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": "openrouter/polaris-alpha",
+        "messages": messages,
+        "temperature": 0.7,  # Adăugat pentru consistență
+        "max_tokens": 2000  # Adăugat pentru răspunsuri mai detaliate
+    }
+
+    print(f"\n📡 REQUEST LA OPENROUTER:")
+    print(f"  Model: {payload['model']}")
+    print(f"  Messages count: {len(messages)}")
+    print(f"  System prompt length: {len(messages[0]['content']) if messages else 0}")
+
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         data = resp.json()
-        return data.get("choices", [{}])[0].get("message", {}).get("content")
-    except Exception as e:
-        print("call_model error:", e)
-        return None
 
+        content = data.get("choices", [{}])[0].get("message", {}).get("content")
+
+        if not content:
+            print(f"⚠️  Răspuns gol de la API!")
+            print(f"Full response: {data}")
+
+        return content
+
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP Error: {e}")
+        print(f"Response: {e.response.text if hasattr(e, 'response') else 'N/A'}")
+        return None
+    except Exception as e:
+        print(f"❌ call_model error: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 def read_log():
     try:
@@ -955,68 +1024,151 @@ def chat_page():
 
 
 def generate_ai_report_for_feedback(feedback_obj):
-    print(f"--- Inițiere generare raport AI pentru Feedback ID: {feedback_obj.id} ---")
-    student = feedback_obj.submission.student
-    assignment = feedback_obj.submission.assignment
+    print("\n" + "=" * 70)
+    print(f"🤖 GENERARE RAPORT AI - Feedback ID: {feedback_obj.id}")
+    print("=" * 70)
+
+    # Obține date
+    submission = feedback_obj.submission
+    student = submission.student
+    assignment = submission.assignment
+
+    # DEBUG: Afișează ce date avem
+    print(f"\n📝 DATE PRELUATE DIN DB:")
+    print(f"  - Student: {student.user.name} (ID: {student.id})")
+    print(f"  - Assignment: {assignment.title}")
+    print(f"  - Descriere temă: {assignment.description[:100]}...")
+    print(f"  - Răspuns elev: {submission.content[:100] if submission.content else 'N/A'}...")
+    print(f"  - Feedback profesor: {feedback_obj.feedback_text[:100]}...")
+    print(f"  - Notă: {feedback_obj.grade}/10")
+
+    # Obține istoric feedback-uri
     lista_feedbackuri = []
     student_submissions = Submission.query.filter_by(student_id=student.id).all()
+
     for sub in student_submissions:
         if sub.feedback:
             lista_feedbackuri.append({
+                "assignment": sub.assignment.title if sub.assignment else "N/A",
                 "nota": sub.feedback.grade,
                 "feedback": sub.feedback.feedback_text
             })
-    system_prompt = (
-        "Ești un asistent AI educațional. Rolul tău este să analizezi feedback-ul unui profesor "
-        "și cerința unei teme, și să generezi un raport structurat pentru elev."
-        "Raportul trebuie să fie încurajator, să identifice punctele forte, punctele slabe și să ofere sugestii clare."
-        "Trebuie să răspunzi OBLIGATORIU într-un format JSON valid, cu următoarele chei: "
-        "'summary' (un scurt rezumat al performanței), "
-        "'strengths' (ce a făcut bine elevul), "
-        "'weaknesses' (ce a greșit sau unde mai are de lucrat), "
-        "'suggestions' (sfaturi concrete pentru îmbunătățire), "
-        "'parent_summary' (un rezumat scurt, pe înțelesul unui părinte)."
-    )
-    user_prompt = (
-        f"Analizează următoarea situație:\n"
-        f"**Cerința Temei:**\n{assignment.description}\n\n"
-        f"**Feedback-ul Profesorului (cel mai recent):**\n{feedback_obj.feedback_text}\n"
-        f"**Nota:** {feedback_obj.grade}\n\n"
-        f"**Istoricul de feedback al elevului (dacă există):**\n{json.dumps(lista_feedbackuri, ensure_ascii=False)}\n\n"
-        f"Generează raportul JSON structurat."
-    )
+
+    print(f"\n📊 ISTORIC FEEDBACK ({len(lista_feedbackuri)} intrări):")
+    for i, fb in enumerate(lista_feedbackuri, 1):
+        print(f"  {i}. {fb['assignment']}: {fb['nota']}/10")
+
+    # Construiește prompt EXPLICIT și STRUCTURAT
+    system_prompt = """Ești un asistent AI educațional pentru școala primară.
+
+IMPORTANT: Analizează DOAR datele pe care le primești mai jos. NU inventa sau presupune informații care nu sunt furnizate.
+
+Generează un raport structurat în format JSON cu următoarele chei:
+- "summary": Rezumat scurt (2-3 propoziții) despre performanța elevului la ACEASTĂ temă specifică
+- "strengths": Listă cu 2-3 puncte forte concrete observate în răspunsul elevului
+- "weaknesses": Listă cu 2-3 puncte slabe sau greșeli specifice
+- "suggestions": Listă cu 2-3 sugestii concrete pentru îmbunătățire
+- "parent_summary": Paragraf pentru părinte (limbaj simplu, fără termeni tehnici)
+
+Răspunde DOAR cu JSON valid, fără text adițional."""
+
+    user_prompt = f"""Analizează performanța elevului {student.user.name}:
+
+**TEMA ACTUALĂ:**
+Titlu: {assignment.title}
+Cerință: {assignment.description}
+
+**RĂSPUNSUL ELEVULUI:**
+{submission.content if submission.content else "Elevul nu a furnizat un răspuns text (posibil fișier încărcat)."}
+
+**FEEDBACK PROFESOR (CEL MAI RECENT):**
+Nota: {feedback_obj.grade}/10
+Comentarii: {feedback_obj.feedback_text}
+
+**CONTEXT ISTORIC (performanțe anterioare):**
+{json.dumps(lista_feedbackuri, ensure_ascii=False, indent=2) if lista_feedbackuri else "Prima temă evaluată"}
+
+Generează raportul JSON bazat STRICT pe datele de mai sus."""
+
+    print(f"\n📤 PROMPT TRIMIS LA AI:")
+    print(f"System: {system_prompt[:150]}...")
+    print(f"User: {user_prompt[:300]}...")
+
     prompt_messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
     ]
+
+    # Apel AI
+    print(f"\n⏳ Trimit request la OpenRouter...")
     ai_response_str = call_model(prompt_messages)
+
     if not ai_response_str:
-        print("Eroare: Răspuns gol de la modelul AI.")
+        print("❌ EROARE: Răspuns gol de la API!")
         return
+
+    print(f"\n📥 RĂSPUNS PRIMIT DE LA AI:")
+    print(f"{ai_response_str[:500]}...")
+
     try:
+        # Curăță răspuns
         if ai_response_str.startswith("```json"):
-            ai_response_str = ai_response_str[7:-3].strip()
+            ai_response_str = ai_response_str[7:]
+        if ai_response_str.startswith("```"):
+            ai_response_str = ai_response_str[3:]
+        if ai_response_str.endswith("```"):
+            ai_response_str = ai_response_str[:-3]
+
+        ai_response_str = ai_response_str.strip()
+
+        # Parse JSON
         ai_data = json.loads(ai_response_str)
+
+        print(f"\n✅ JSON PARSAT CU SUCCES")
+        print(f"  - Summary: {ai_data.get('summary', 'N/A')[:100]}...")
+        print(f"  - Strengths: {len(ai_data.get('strengths', []))} puncte")
+        print(f"  - Weaknesses: {len(ai_data.get('weaknesses', []))} puncte")
+
+        # Verifică dacă există deja raport
         ai_report = AIReport.query.filter_by(feedback_id=feedback_obj.id).first()
+
         if not ai_report:
             ai_report = AIReport(
                 feedback_id=feedback_obj.id,
                 student_id=student.id
             )
             db.session.add(ai_report)
-        ai_report.report_content = ai_response_str
+            print(f"\n📝 Creat raport NOU")
+        else:
+            print(f"\n📝 Actualizat raport EXISTENT (ID: {ai_report.id})")
+
+        # Salvează datele
+        ai_report.report_content = json.dumps(ai_data, ensure_ascii=False)
         ai_report.summary = ai_data.get('summary', 'N/A')
-        ai_report.strengths = ai_data.get('strengths', 'N/A')
-        ai_report.weaknesses = ai_data.get('weaknesses', 'N/A')
-        ai_report.suggestions = ai_data.get('suggestions', 'N/A')
+
+        # Convertește liste în JSON strings
+        ai_report.strengths = json.dumps(ai_data.get('strengths', []), ensure_ascii=False)
+        ai_report.weaknesses = json.dumps(ai_data.get('weaknesses', []), ensure_ascii=False)
+        ai_report.suggestions = json.dumps(ai_data.get('suggestions', []), ensure_ascii=False)
         ai_report.parent_summary = ai_data.get('parent_summary', 'N/A')
+
         db.session.commit()
-        print(f"--- Raport AI salvat cu succes pentru Feedback ID: {feedback_obj.id} ---")
-    except json.JSONDecodeError:
-        print(f"Eroare: Răspunsul AI nu a fost un JSON valid: {ai_response_str}")
+
+        print(f"\n✅ RAPORT SALVAT CU SUCCES în DB!")
+        print(f"  - AIReport ID: {ai_report.id}")
+        print(f"  - Feedback ID: {ai_report.feedback_id}")
+        print(f"  - Student ID: {ai_report.student_id}")
+        print("=" * 70 + "\n")
+
+    except json.JSONDecodeError as e:
+        print(f"\n❌ EROARE PARSARE JSON: {e}")
+        print(f"Răspuns problematic: {ai_response_str[:500]}")
+
     except Exception as e:
         db.session.rollback()
-        print(f"Eroare la salvarea raportului AI în baza de date: {e}")
+        print(f"\n❌ EROARE la salvare în DB: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @bp.route("/api/generate_report", methods=["POST"])
@@ -1042,21 +1194,46 @@ def generate_report():
 def query_model():
     data = request.json
     user_msg = data.get("message", "")
+
+    # 1. PRELUĂM ID-UL FEEDBACK-ULUI DORIT DIN CERERE
+    # Frontend-ul va trebui să trimită acest ID
+    feedback_id = data.get("feedback_id", None)
+
     student = Student.query.filter_by(user_id=current_user.id).first()
     if not student:
         return jsonify({"response": "Eroare: Nu am găsit profilul tău de student."})
-    latest_report = AIReport.query.filter_by(student_id=student.id).order_by(AIReport.id.desc()).first()
+
+    # 2. CĂUTĂM RAPORTUL SPECIFIC (SAU CEL MAI RECENT DACA NU AVEM ID)
+    target_report = None
+    if feedback_id:
+        # Căutăm raportul AI asociat cu feedback_id-ul specificat
+        target_report = AIReport.query.filter_by(
+            student_id=student.id,
+            feedback_id=feedback_id
+        ).first()
+    else:
+        # Comportamentul vechi: luăm cel mai recent raport dacă nu e specificat unul
+        target_report = AIReport.query.filter_by(student_id=student.id).order_by(AIReport.id.desc()).first()
+
     context_str = "Context intern:\n"
-    if latest_report:
-        feedback = latest_report.feedback
+
+    # 3. CONSTRUIM CONTEXTUL PE BAZA RAPORTULUI GĂSIT ('target_report')
+    if target_report:
+        feedback = target_report.feedback
         assignment = feedback.submission.assignment
         context_str += f"Materie={assignment.subject.name}\n"
         context_str += f"Cerinta={assignment.description}\n"
         context_str += f"Feedback_profesor={feedback.feedback_text}\n"
-        context_str += f"Puncte_slabe_identificate={latest_report.weaknesses}\n"
-        context_str += f"Sugestii_AI={latest_report.suggestions}\n"
+        context_str += f"Puncte_slabe_identificate={target_report.weaknesses}\n"
+        context_str += f"Sugestii_AI={target_report.suggestions}\n"
     else:
-        context_str += "Niciun raport AI generat încă. Răspunde la întrebarea elevului cât de bine poți."
+        if feedback_id:
+            # Nu am găsit un raport pentru acel ID
+            context_str += f"Nu am găsit un raport AI pentru feedback-ul specificat (ID: {feedback_id})."
+        else:
+            # Nu există niciun raport generat pentru acest elev
+            context_str += "Niciun raport AI generat încă. Răspunde la întrebarea elevului cât de bine poți."
+
     responder_prompt = [
         {
             "role": "system",
@@ -1073,7 +1250,13 @@ def query_model():
         },
         {"role": "user", "content": user_msg}
     ]
+
     final_answer = call_model(responder_prompt)
     if not final_answer:
         final_answer = "Nu am reușit să procesez răspunsul. Te rog, mai încearcă."
-    return jsonify({"response": final_answer})
+
+    # Returnăm și ID-ul folosit, pentru ca frontend-ul să știe contextul
+    return jsonify({
+        "response": final_answer,
+        "context_feedback_id": target_report.feedback_id if target_report else None
+    })
