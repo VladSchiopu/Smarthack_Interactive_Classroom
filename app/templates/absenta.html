@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+        <li><a href="{{ url_for('main.pdashboard') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('main.home') }}">Situație copil</a></li>
+        <li class="active"><a href="{{ url_for('main.absenta') }}">Absențe</a></li>
+        <li><a href="#">Mesagerie</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+<body>
+
+<div class="content-wrapper">
+    <div class="main2">
+        <div class="header_situatie">
+            <p>Elev</p>
+            <h2>{{ child.name }}</h2>
+        </div>
+
+    </div>
+
+    <div class="container">
+        <h1 class="page-title">Absente</h1>
+        <h2>
+            <div class="a-bit-padding">
+                <div class="absent-item">
+                    <span class="absent-left">Materie</span>
+                    <span class="absent-right">Data</span>
+                </div>
+            </div>
+        </h2>
+
+
+        <!-- Overall Average Card -->
+        <div class="card gradient-card.overall-average-absent">
+            <div class="card-content">
+                <div class="absent-item">
+                    <span class="absent-left">Matematica</span>
+                    <span class="absent-right">09/11/2025</span>
+                </div>
+                <div class="absent-item">
+                    <span class="absent-left">Romana</span>
+                </div>
+                <div class="absent-item">
+                    <span class="absent-left">Francais~</span>
+                </div>
+            </div>
+        </div>
+        <div class="card gradient-card.overall-average-absent">
+            <div class="card-content">
+                <div class="absent-item">
+                    <span class="absent-left">Matematica</span>
+                    <span class="absent-right">10/11/2025</span>
+                </div>
+                <div class="absent-item">
+                    <span class="absent-left">Romana</span>
+                </div>
+                <div class="absent-item">
+                    <span class="absent-left">Francais~</span>
+                </div>
+            </div>
+        </div>
+        
+
+        
+
+        
+    </div>
+</div>
+
+
+
+
+
+
+
+
+{% endblock %}

@@ -214,27 +214,120 @@ def home():
             if child_student:
                 grades_list = []
                 student_subjects = StudentSubject.query.filter_by(student_id=child_student.id).all()
-                for ss in student_subjects:
-                    grades_list.append({
-                        "subject": ss.subject.name,
-                        "grade": ss.performance_history or "N/A"
+            #     for ss in student_subjects:
+            #         grades_list.append({
+            #             "subject": ss.subject.name,
+            #             "grade": ss.performance_history or "N/A"
+            #         })
+            #     child_info_data = {
+            #         "name": child_student.user.name,
+            #         "grades": grades_list
+            #     }
+            # else:
+            #     child_info_data = {
+            #         "name": "Niciun copil asociat.",
+            #         "grades": [],
+            #         "show_link_button": True
+            #     }
+                submissions = Submission.query.join(Assignment).join(Subject).filter(
+                    Submission.student_id == child_student.id
+                ).all()
+
+                grades_by_subject = {}
+                for sub in submissions:
+                    subject_name = sub.assignment.subject.name
+                    grade = sub.feedback.grade if sub.feedback else "N/A"
+                    grades_by_subject.setdefault(subject_name, []).append({
+                        "assignment_title": sub.assignment.title,
+                        "grade": grade
                     })
+
+                # Calculăm media pe fiecare materie
+                subject_averages = {}
+                for subject, grades_list in grades_by_subject.items():
+                    total = 0
+                    count = 0
+                    for g in grades_list:
+                        try:
+                            total += float(g['grade'])
+                            count += 1
+                        except (ValueError, TypeError):
+                            continue  # ignorăm grade non-numerice
+                    if count > 0:
+                        subject_averages[subject] = total / count
+                    else:
+                        subject_averages[subject] = 0
+
+                # Calculăm media generală
+                if subject_averages:
+                    general_avg = sum(subject_averages.values()) / len(subject_averages)
+                else:
+                    general_avg = 0
+                general_avg=round(general_avg, 2)
+
+                # Total materii
+                total_subjects = len(grades_by_subject)
+
+                # Total note
+                total_grades = sum(len(grades) for grades in grades_by_subject.values())
+
+                # Media pe fiecare materie
+                subject_averages = {}
+                for subject, grades_list in grades_by_subject.items():
+                    total = 0
+                    count = 0
+                    for g in grades_list:
+                        try:
+                            total += float(g['grade'])
+                            count += 1
+                        except (ValueError, TypeError):
+                            continue
+                    if count > 0:
+                        subject_averages[subject] = total / count
+                    else:
+                        subject_averages[subject] = 0
+
+                # Cea mai mare medie
+                if subject_averages:
+                    max_subject = max(subject_averages, key=subject_averages.get)
+                    max_avg = subject_averages[max_subject]
+                else:
+                    max_subject = None
+                    max_avg = 0
+
                 child_info_data = {
                     "name": child_student.user.name,
-                    "grades": grades_list
+                    "grades_by_subject": grades_by_subject,
+                    "general_avg": general_avg,
+                    "total_subjects": total_subjects,
+                    "total_grades": total_grades,
+                    "max_subject": max_subject,
+                    "max_avg": max_avg,
                 }
-            else:
-                child_info_data = {
-                    "name": "Niciun copil asociat.",
-                    "grades": [],
-                    "show_link_button": True
-                }
-        return render_template("parinte.html", user=current_user, child=child_info_data)
+        return render_template("situatie.html", user=current_user, child=child_info_data)
 
     else:
         logout_user()
         return redirect(url_for("main.login"))
 
+@bp.route("/absenta", methods=["GET", "POST"])
+@login_required
+def absenta():
+    role = current_user.role
+
+    if role == "Parinte":
+        # ... (Logica pentru Părinte rămâne neschimbată) ...
+        parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
+        child_info_data = {}
+        if parent_profile:
+            child_student = None
+            if parent_profile.students:
+                child_student = parent_profile.students[0]
+            if child_student:
+                child_info_data = {
+                    "name": child_student.user.name,
+                }
+                return render_template("absenta.html", user=current_user, child=child_info_data)
 
 # ... (Rutele link_child, dashboard, teme_profesor, orar rămân la fel) ...
 @bp.route("/link_child", methods=["GET", "POST"])
