@@ -2,8 +2,6 @@
 {% block content %}
 
 <style>
-    /* Specific styles for the student list table to maintain original look 
-       while sitting inside the new dashboard layout */
     .table-container {
         background: white;
         border-radius: 16px;
@@ -47,12 +45,151 @@
         margin-right: 15px;
         background-color: #e9ecef;
     }
-    
+
     .text-muted { color: #6c757d; }
-    .course-badge { display: flex; align-items: center; font-size: 1.1rem; color: #007867; }
-    .course-badge i { margin-right: 8px; }
+
+    .btn-absence {
+        background: linear-gradient(135deg, #007BFF 0%, #00CFFF 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px #eaeef566;
+    }
+
+    .btn-absence:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(229, 237, 250, 0.5);
+    }
+
+    /* MODAL PRINCIPAL */
+    .modal {
+        position: fixed;
+        z-index: 5000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+        display: none;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 4% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 70%;
+        max-height: 85%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .close {
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .absence-list {
+        list-style: none;
+        padding: 0;
+        flex: 1;
+        overflow-y: auto;
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+
+    .absence-list li {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 15px;
+    }
+
+    .btn-add {
+        background: linear-gradient(135deg, #28a745 0%, #6ddf80 100%);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    /* SUB-MODAL */
+    .sub-modal {
+        position: fixed;
+        z-index: 6000;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        width: 380px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        display: none;
+    }
+
+    .sub-modal input, .sub-modal select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+    }
+
+    .sub-modal-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn-cancel {
+        background-color: #ccc;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-confirm {
+        background: linear-gradient(135deg, #007BFF 0%, #00CFFF 100%);
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
 </style>
 
+<!-- SIDEBAR -->
 <div class="sidebar">
     <div class="profile">
         <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
@@ -84,11 +221,10 @@
     <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
 </div>
 
+<!-- MAIN -->
 <div class="main">
     <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
         <h2>Listă Elevi</h2>
-        <div class="course-badge">
-        </div>
     </div>
 
     <div class="table-container">
@@ -97,6 +233,7 @@
                 <tr>
                     <th>Nume</th>
                     <th>Email</th>
+                    <th style="text-align: right;">Acțiuni</th>
                 </tr>
             </thead>
             <tbody>
@@ -109,10 +246,15 @@
                         </div>
                     </td>
                     <td class="text-muted">{{ student.user.email }}</td>
+                    <td style="text-align: right;">
+                        <button class="btn-absence" onclick="openModal('{{ student.id }}', '{{ student.user.name }}')">
+                            Gestionează absențe
+                        </button>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="2" style="text-align: center; padding: 20px;" class="text-muted">
+                    <td colspan="3" style="text-align: center; padding: 20px;" class="text-muted">
                         Nu au fost găsiți elevi.
                     </td>
                 </tr>
@@ -121,5 +263,135 @@
         </table>
     </div>
 </div>
+
+<!-- MODAL PRINCIPAL -->
+<div id="absence-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Gestionează absențe</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <ul id="absenceList" class="absence-list"></ul>
+        <div class="modal-footer">
+            <button class="btn-add" id="btnAddAbsence">Adaugă absență</button>
+        </div>
+    </div>
+</div>
+
+<!-- INPUT ASCUNS -->
+<input type="hidden" id="currentStudentId" value="">
+
+<!-- SUB-MODAL -->
+<div id="addAbsenceModal" class="sub-modal">
+    <h4>Adaugă absență</h4>
+    <label>Profesor</label>
+    <select id="profesorSelect">
+        {% for p, u in profesori %}
+            <option value="{{ p.id }}">{{ u.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Materia</label>
+    <select id="subjectSelect">
+        {% for s in materii %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Data</label>
+    <input type="date" id="absenceDate">
+
+    <div class="sub-modal-buttons">
+        <button class="btn-cancel" onclick="closeAddAbsenceModal()">Anulează</button>
+        <button class="btn-confirm" onclick="confirmAddAbsence()">Confirmă</button>
+    </div>
+</div>
+
+<script>
+function openModal(studentId, studentName) {
+    const modal = document.getElementById('absence-modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const absenceList = document.getElementById('absenceList');
+
+    modalTitle.textContent = `Gestionează absențe pentru ${studentName}`;
+    document.getElementById("currentStudentId").value = studentId;
+    absenceList.innerHTML = "<li>Se încarcă absențele...</li>";
+
+    fetch(`/get_absences/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            absenceList.innerHTML = "";
+            if (data.absences.length > 0) {
+                data.absences.forEach(a => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `<span class="left">${a.subject_name}</span><span class="right">${a.date}</span>`;
+                    absenceList.appendChild(li);
+                });
+            } else {
+                absenceList.innerHTML = "<li>Nu există absențe.</li>";
+            }
+        });
+
+    // Setăm onclick corect pentru butonul "Adaugă absență"
+    document.getElementById("btnAddAbsence").onclick = function() {
+        openAddAbsenceModal(studentId);
+    };
+
+    modal.style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById('absence-modal').style.display = "none";
+}
+
+function openAddAbsenceModal(studentId) {
+    document.getElementById("currentStudentId").value = studentId;
+    document.getElementById("addAbsenceModal").style.display = "block";
+}
+
+function closeAddAbsenceModal() {
+    document.getElementById('addAbsenceModal').style.display = 'none';
+}
+
+async function confirmAddAbsence() {
+    const studentId = document.getElementById("currentStudentId").value;
+    const subjectId = document.getElementById("subjectSelect").value;
+    const professorId = document.getElementById("profesorSelect").value;
+    const date = document.getElementById("absenceDate").value;
+
+    if (!date) {
+        alert("Selectează o dată!");
+        return;
+    }
+
+    const response = await fetch("/add_absence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            student_id: studentId,
+            subject_id: subjectId,
+            professor_id: professorId,
+            date: date
+        })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+        alert(result.message);
+        closeAddAbsenceModal();
+        openModal(studentId, document.getElementById("modalTitle").textContent.split("pentru ")[1]);
+    } else {
+        alert("Eroare: " + (result.error || "nu s-a putut adăuga absența"));
+    }
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('absence-modal');
+    const subModal = document.getElementById('addAbsenceModal');
+    if (event.target === modal) modal.style.display = "none";
+    if (event.target === subModal) subModal.style.display = "none";
+}
+</script>
 
 {% endblock %}

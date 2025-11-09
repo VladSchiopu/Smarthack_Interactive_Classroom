@@ -47,6 +47,7 @@ class Student(db.Model):
     submissions = db.relationship('Submission', back_populates='student')
     chat_sessions = db.relationship('ChatSession', back_populates='student')
     ai_reports = db.relationship('AIReport', back_populates='student')
+    absences = db.relationship('Absence', back_populates='student', cascade='all, delete-orphan')
 
 
 class Professor(db.Model):
@@ -80,6 +81,7 @@ class Subject(db.Model):  # Fosta tabelă "Materie" (top-dreapta)
     # Relații
     assignments = db.relationship('Assignment', back_populates='subject')
     student_subjects = db.relationship('StudentSubject', back_populates='subject')
+    absences = db.relationship('Absence', back_populates='subject', cascade='all, delete-orphan')
 
 
 class StudentSubject(db.Model):  # Fosta tabelă "Materie" (centru-stânga)
@@ -198,3 +200,14 @@ class ChatMessage(db.Model):
 
     # Relații
     session = db.relationship('ChatSession', back_populates='messages')
+
+class Absence(db.Model):
+    __tablename__ = 'absence'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+
+    # Relații
+    student = db.relationship('Student', back_populates='absences')
+    subject = db.relationship('Subject', back_populates='absences')
