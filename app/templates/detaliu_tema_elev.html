@@ -43,7 +43,7 @@
             <h4>Cerință</h4>
             <div class="assignment-card" style="padding: 25px;">
                 <p style="color: #6c757d; font-size: 0.9rem;">
-                    Dată limită: {{ assignment.due_date.strftime('%d %B %Y') if assignment.due_date else 'N/A' }} | 
+                    Dată limită: {{ assignment.due_date.strftime('%d %B %Y') if assignment.due_date else 'N/A' }} |
                     Materie: {{ assignment.subject.name }}
                 </p>
                 <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
@@ -52,7 +52,7 @@
         </div>
 
         <div style="flex: 1;">
-            
+
             {% if submission.status == 'Trimis' or submission.status == 'Corectat' %}
                 <h4>Rezolvarea ta</h4>
                 <div class="assignment-card" style="background-color: #f8f9fa;">
@@ -70,7 +70,15 @@
                     </div>
                     <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
                     <p style="white-space: pre-wrap;">{{ feedback.feedback_text }}</p>
-                </div>
+
+                    <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 15px 0;">
+                    <a href="{{ url_for('main.chat_page', feedback_id=feedback.id) }}"
+                       target="_blank"
+                       class="primary-action"
+                       style="width: 100%; box-sizing: border-box; text-align: center; text-decoration: none; display: inline-block; background-color: #28a745; color: white; border: none; padding: 12px; font-size: 0.95rem; font-weight: 500; border-radius: 8px; cursor: pointer;">
+                        💬 Discută cu AI despre acest feedback
+                    </a>
+                    </div>
                 {% elif submission.status == 'Trimis' %}
                 <div class="status status-în-progres" style="margin-top: 20px; text-align: center;">Așteaptă corectare...</div>
                 {% endif %}

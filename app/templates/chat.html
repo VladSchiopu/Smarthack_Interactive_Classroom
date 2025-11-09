@@ -4,7 +4,7 @@
 <h2>Chat AI Educațional (Demo)</h2>
 
 <div id="param-container">
-    <button id="reportButton" onclick="generateReport()">📄 Generează Raport (test)</button>
+    <button id="reportButton" onclick="generateReport()">📄 Generează Raport General (test)</button>
 </div>
 
 <hr>
@@ -12,7 +12,7 @@
 <div id="chat-container">
     <div id="chat-history">
         <div class="message bot">
-            <div class="content">
+            <div class="content" id="initial-message">
                 Bună! Sunt asistentul tău AI. Apasă „Generează Raport” pentru a începe.
             </div>
         </div>
@@ -24,12 +24,45 @@
 </div>
 
 <script>
+    // Salvăm referințe la elemente
     const textarea = document.getElementById('userInput');
+    const userInputEl = document.getElementById("userInput");
+    const sendButtonEl = document.getElementById("sendButton");
+    const reportButtonEl = document.getElementById("reportButton");
+    const initialMessageEl = document.getElementById("initial-message");
+
+    // Variabilă globală pentru a stoca ID-ul feedback-ului
+    let CONTEXT_FEEDBACK_ID = null;
+
+    // Rulăm la încărcarea paginii
+    window.addEventListener('DOMContentLoaded', () => {
+        // 1. Extragem parametrii din URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const feedbackId = urlParams.get('feedback_id');
+
+        // 2. Verificăm dacă am primit un feedback_id
+        if (feedbackId) {
+            CONTEXT_FEEDBACK_ID = feedbackId;
+
+            // 3. Activăm chatul și ascundem butonul de raport general
+            reportButtonEl.style.display = 'none'; // Ascundem butonul
+            userInputEl.disabled = false;
+            sendButtonEl.disabled = false;
+
+            // 4. Schimbăm mesajul de întâmpinare
+            if (initialMessageEl) {
+                initialMessageEl.textContent = "Bună! Sunt gata să discutăm despre feedback-ul tău specific. Scrie prima întrebare.";
+            }
+        }
+    });
+
+    // Funcție pentru auto-dimensionarea text-area
     textarea.addEventListener('input', () => {
         textarea.style.height = 'auto';
         textarea.style.height = (textarea.scrollHeight) + 'px';
     });
 
+    // Funcția pentru raportul general (rămâne neschimbată)
     async function generateReport() {
         try {
             const response = await fetch("{{ url_for('main.generate_report') }}", {
@@ -41,14 +74,15 @@
             const data = await response.json();
             if (data.status === "ok") {
                 alert("Raport generat și salvat în reports.txt!");
-                document.getElementById("userInput").disabled = false;
-                document.getElementById("sendButton").disabled = false;
+                userInputEl.disabled = false;
+                sendButtonEl.disabled = false;
             }
         } catch (err) {
             alert("Eroare la generarea raportului: " + err.message);
         }
     }
 
+    // Funcția de trimitere mesaj (modificată)
     async function sendMessage() {
         const userInput = textarea.value.trim();
         if (userInput === "") return;
@@ -69,19 +103,23 @@
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
         try {
-        const response = await fetch("{{ url_for('main.query_model') }}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: userInput })
-        });
+            // 5. Creăm payload-ul care include feedback_id (dacă există)
+            const payload = {
+                message: userInput,
+                feedback_id: CONTEXT_FEEDBACK_ID // Va fi null sau ID-ul extras din URL
+            };
 
-        const data = await response.json();
+            const response = await fetch("{{ url_for('main.query_model') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload) // Trimitem payload-ul complet
+            });
 
-        const typingBubble = document.getElementById("typing-indicator");
+            const data = await response.json();
+            const typingBubble = document.getElementById("typing-indicator");
 
-        // transformă indicatorul într-un mesaj final
-        typingBubble.removeAttribute("id");
-        typingBubble.textContent = data.response;
+            typingBubble.removeAttribute("id");
+            typingBubble.textContent = data.response;
 
         } catch (error) {
             const typingBubble = document.getElementById("typing-indicator");
