@@ -540,7 +540,68 @@ def dashboard():
 @bp.route("/pdashboard")
 @login_required
 def pdashboard():
-   return render_template("pdashboard.html", user=current_user)
+    parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
+    child_info_data = {}
+    if parent_profile:
+        child_student = None
+        if parent_profile.students:
+            child_student = parent_profile.students[0]
+        if child_student:
+            grades_list = []
+            student_subjects = StudentSubject.query.filter_by(student_id=child_student.id).all()
+            submissions = Submission.query.join(Assignment).join(Subject).filter(
+                Submission.student_id == child_student.id
+            ).all()
+
+            grades_by_subject = {}
+            for sub in submissions:
+                subject_name = sub.assignment.subject.name
+                grade = sub.feedback.grade if sub.feedback else "N/A"
+                grades_by_subject.setdefault(subject_name, []).append({
+                    "assignment_title": sub.assignment.title,
+                    "grade": grade
+                })
+
+            # Calculăm media pe fiecare materie
+            subject_averages = {}
+            for subject, grades_list in grades_by_subject.items():
+                total = 0
+                count = 0
+                for g in grades_list:
+                    try:
+                        total += float(g['grade'])
+                        count += 1
+                    except (ValueError, TypeError):
+                        continue  # ignorăm grade non-numerice
+                if count > 0:
+                    subject_averages[subject] = total / count
+                else:
+                    subject_averages[subject] = 0
+
+            # Calculăm media generală
+            if subject_averages:
+                general_avg = sum(subject_averages.values()) / len(subject_averages)
+            else:
+                general_avg = 0
+            general_avg=round(general_avg, 2)
+            general_avg_percent = round((general_avg / 10) * 100, 1)
+
+        # --- 4. Calculăm absențele ---
+        absences_count = 100 - Absence.query.filter_by(student_id=child_student.id).count()
+
+        # --- 5. Penalizăm procentajul: -1% pentru fiecare absență ---
+        adjusted_percent = general_avg_percent - absences_count
+        if adjusted_percent < 0:
+            adjusted_percent = 0  # nu mergem sub 0%
+
+        child_info_data = {
+            "child": child_student.user.name,
+            "percentile": general_avg_percent or 0,
+            "absences": absences_count,
+        }
+
+
+        return render_template("pdashboard.html", user=current_user, child_info=child_info_data)
 
 
 @bp.route("/get_absences/<int:student_id>")
