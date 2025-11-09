@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+/* Sidebar rămâne la fel */
+.sidebar {
+    width: 220px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: #f8f9fa;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+.sidebar .profile img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+.sidebar .menu {
+    margin-top: 30px;
+    list-style: none;
+    padding: 0;
+}
+.sidebar .menu li {
+    margin: 15px 0;
+}
+.sidebar .menu li a {
+    color: #495057;
+    text-decoration: none;
+    font-weight: 500;
+}
+.sidebar .menu li.active a {
+    color: #007BFF;
+    font-weight: 600;
+}
+.sidebar .logout {
+    display: block;
+    margin-top: 50px;
+    color: white;
+    background: #dc3545;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    text-decoration: none;
+}
+
+/* Main content */
+body {
+    margin-left: 240px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f6fa;
+}
+
+.content-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 90vh;
+}
+
+.card-container {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 30px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+.card-container h2 {
+    margin-bottom: 25px;
+    color: #343a40;
+}
+
+#copilSelect {
+    border-radius: 12px !important;
+    padding: 10px;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007BFF 0%, #00CFFF 100%);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,123,255,0.2);
+}
+</style>
+
+<div class="content-wrapper">
+    <div class="card-container">
+        <h2>Alege copilul</h2>
+        <form id="asignareCopilForm" method="POST" action="{{ url_for('main.asignare_copil') }}">
+            <select id="copilSelect" name="student_id" required>
+                <option></option>
+                {% for student in copii %}
+                    <option value="{{ student.id }}">{{ student.user.name }}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <button type="submit" class="btn btn-primary">Confirmă</button>
+        </form>
+    </div>
+</div>
+
+<!-- Include jQuery și Select2 JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#copilSelect').select2({
+        placeholder: "Caută copil...",
+        allowClear: true,
+        dropdownParent: $('.card-container') // dropdown apare în card
+    });
+});
+</script>
+
+{% endblock %}

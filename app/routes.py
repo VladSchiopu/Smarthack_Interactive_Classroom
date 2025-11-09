@@ -12,7 +12,7 @@ from . import db
 ### MODIFICAT ###
 # Am importat TOATE modelele
 from .models import (
-    User, Student, Professor, Parent, Subject, StudentSubject,
+    Absence, User, Student, Professor, Parent, Subject, StudentSubject,
     Assignment, Submission, Feedback, AIReport
 )
 
@@ -214,21 +214,6 @@ def home():
             if child_student:
                 grades_list = []
                 student_subjects = StudentSubject.query.filter_by(student_id=child_student.id).all()
-            #     for ss in student_subjects:
-            #         grades_list.append({
-            #             "subject": ss.subject.name,
-            #             "grade": ss.performance_history or "N/A"
-            #         })
-            #     child_info_data = {
-            #         "name": child_student.user.name,
-            #         "grades": grades_list
-            #     }
-            # else:
-            #     child_info_data = {
-            #         "name": "Niciun copil asociat.",
-            #         "grades": [],
-            #         "show_link_button": True
-            #     }
                 submissions = Submission.query.join(Assignment).join(Subject).filter(
                     Submission.student_id == child_student.id
                 ).all()
@@ -295,20 +280,129 @@ def home():
                     max_subject = None
                     max_avg = 0
 
+
                 child_info_data = {
                     "name": child_student.user.name,
-                    "grades_by_subject": grades_by_subject,
-                    "general_avg": general_avg,
-                    "total_subjects": total_subjects,
-                    "total_grades": total_grades,
-                    "max_subject": max_subject,
-                    "max_avg": max_avg,
+                    "grades_by_subject": grades_by_subject or {},
+                    "general_avg": general_avg or 0,
+                    "total_subjects": total_subjects or 0,
+                    "total_grades": total_grades or 0,
+                    "max_subject": max_subject or 0,
+                    "max_avg": max_avg or 0,
                 }
-        return render_template("situatie.html", user=current_user, child=child_info_data)
+                return render_template("situatie.html", user=current_user, child=child_info_data)
+            # Parent doesn't have a child 
+            copii_disponibili = Student.query.all()
 
+            return render_template("preluareCopil.html", user=current_user, copii=copii_disponibili)
     else:
         logout_user()
         return redirect(url_for("main.login"))
+
+@bp.route("/asignare_copil", methods=["POST"])
+@login_required
+def asignare_copil():
+    student_id = request.form.get('student_id')
+    parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
+    student = Student.query.get(student_id)
+
+    if student and parent_profile:
+        student.parent_id = parent_profile.id
+        db.session.commit()
+        flash(f"{student.user.name} a fost asignat părintele curent.", "success")
+    else:
+        flash("Eroare la asignarea copilului.", "danger")
+
+    return redirect(url_for('main.pdashboard'))
+
+@bp.route("/note_elev", methods=["GET", "POST"])
+@login_required
+def note_elev():
+    role = current_user.role
+
+    if role == "Elev":
+        student_profile = Student.query.filter_by(user_id=current_user.id).first()
+        child_info_data = {}
+
+        if student_profile:
+            # Preluăm toate subiectele și notele
+            submissions = Submission.query.join(Assignment).join(Subject).filter(
+                Submission.student_id == student_profile.id
+            ).all()
+
+            grades_by_subject = {}
+            for sub in submissions:
+                subject_name = sub.assignment.subject.name
+                grade = sub.feedback.grade if sub.feedback else "N/A"
+                grades_by_subject.setdefault(subject_name, []).append({
+                    "assignment_title": sub.assignment.title,
+                    "grade": grade
+                })
+
+            # Calculăm media pe fiecare materie
+                subject_averages = {}
+                for subject, grades_list in grades_by_subject.items():
+                    total = 0
+                    count = 0
+                    for g in grades_list:
+                        try:
+                            total += float(g['grade'])
+                            count += 1
+                        except (ValueError, TypeError):
+                            continue  # ignorăm grade non-numerice
+                    if count > 0:
+                        subject_averages[subject] = total / count
+                    else:
+                        subject_averages[subject] = 0
+
+                # Calculăm media generală
+                if subject_averages:
+                    general_avg = sum(subject_averages.values()) / len(subject_averages)
+                else:
+                    general_avg = 0
+                general_avg=round(general_avg, 2)
+
+                # Total materii
+                total_subjects = len(grades_by_subject)
+
+                # Total note
+                total_grades = sum(len(grades) for grades in grades_by_subject.values())
+
+                # Media pe fiecare materie
+                subject_averages = {}
+                for subject, grades_list in grades_by_subject.items():
+                    total = 0
+                    count = 0
+                    for g in grades_list:
+                        try:
+                            total += float(g['grade'])
+                            count += 1
+                        except (ValueError, TypeError):
+                            continue
+                    if count > 0:
+                        subject_averages[subject] = total / count
+                    else:
+                        subject_averages[subject] = 0
+
+                # Cea mai mare medie
+                if subject_averages:
+                    max_subject = max(subject_averages, key=subject_averages.get)
+                    max_avg = subject_averages[max_subject]
+                else:
+                    max_subject = None
+                    max_avg = 0
+
+                child_info_data = {
+                    "name": current_user.name,
+                    "grades_by_subject": grades_by_subject or {},
+                    "general_avg": general_avg or 0,
+                    "total_subjects": total_subjects or 0,
+                    "total_grades": total_grades or 0,
+                    "max_subject": max_subject or 0,
+                    "max_avg": max_avg or 0,
+                }
+            return render_template("note_elev.html", user=current_user, child=child_info_data)
+    return "H4CK3R!!"
 
 @bp.route("/absenta", methods=["GET", "POST"])
 @login_required
@@ -316,18 +410,38 @@ def absenta():
     role = current_user.role
 
     if role == "Parinte":
-        # ... (Logica pentru Părinte rămâne neschimbată) ...
         parent_profile = Parent.query.filter_by(user_id=current_user.id).first()
-        child_info_data = {}
-        if parent_profile:
-            child_student = None
-            if parent_profile.students:
-                child_student = parent_profile.students[0]
-            if child_student:
-                child_info_data = {
-                    "name": child_student.user.name,
-                }
-                return render_template("absenta.html", user=current_user, child=child_info_data)
+
+        if not parent_profile or not parent_profile.students:
+            return render_template("absenta.html", user=current_user, child=None, absences_by_day={})
+
+        # Luăm primul copil al părintelui (presupunem 1 copil)
+        child_student = parent_profile.students[0]
+        child_info_data = {"name": child_student.user.name}
+
+        # Luăm toate absențele copilului + materia
+        absences = (
+            db.session.query(Absence)
+            .join(Subject)
+            .filter(Absence.student_id == child_student.id)
+            .order_by(Absence.date.desc())
+            .all()
+        )
+
+        # Grupăm absențele după dată
+        absences_by_day = {}
+        for a in absences:
+            date_str = a.date.strftime("%d/%m/%Y")
+            absences_by_day.setdefault(date_str, []).append(a.subject.name)
+
+        return render_template(
+            "absenta.html",
+            user=current_user,
+            child=child_info_data,
+            absences_by_day=absences_by_day
+        )
+
+    return render_template("absenta.html", user=current_user, child=None, absences_by_day={})
 
 # ... (Rutele link_child, dashboard, teme_profesor, orar rămân la fel) ...
 @bp.route("/link_child", methods=["GET", "POST"])
@@ -375,10 +489,54 @@ def pdashboard():
    return render_template("pdashboard.html", user=current_user)
 
 
+@bp.route("/get_absences/<int:student_id>")
+def get_absences(student_id):
+    student = Student.query.get_or_404(student_id)
+    absences = Absence.query.filter_by(student_id=student.id).join(Subject).all()
+    absences_data = [
+        {"subject_name": a.subject.name, "date": a.date.strftime("%d-%m-%Y")}
+        for a in absences
+    ]
+    return {"absences": absences_data}
+
+@bp.route("/add_absence", methods=["POST"])
+def add_absence():
+    data = request.get_json()
+
+    student_id = data.get("student_id")
+    subject_id = data.get("subject_id")
+    professor_id = data.get("professor_id")
+    date_str = data.get("date")  # aici luăm data din frontend
+
+    if not student_id or not subject_id or not professor_id or not date_str:
+        return jsonify({"error": "Date incomplete"}), 400
+
+    # convertim string-ul din formatul 'YYYY-MM-DD' într-un obiect date
+    try:
+        absence_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"error": "Data invalidă"}), 400
+
+    # Creăm obiectul Absence cu data corectă
+    new_absence = Absence(
+        student_id=student_id,
+        subject_id=subject_id,
+        date=absence_date
+    )
+
+    db.session.add(new_absence)
+    db.session.commit()
+
+    return jsonify({"message": "Absența a fost adăugată cu succes!"})
+
 @bp.route('/students')
 def students_dashboard():
     students = Student.query.all()
-    return render_template('listaElevi.html', students=students, user=current_user)
+    profesori = db.session.query(Professor, User).join(User).all()
+    materii = Subject.query.all()
+
+
+    return render_template('listaElevi.html', students=students, user=current_user, profesori=profesori, materii=materii)
 
 @bp.route("/test")
 def test():
