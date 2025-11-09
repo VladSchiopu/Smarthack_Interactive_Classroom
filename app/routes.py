@@ -2,11 +2,18 @@ import os
 import uuid
 import json
 import requests
+import sys
+import io
 from flask import Blueprint, flash, render_template_string, request, redirect, url_for, render_template, jsonify
 from flask_login import login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime  # AM ADAUGAT
+
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 from . import db
 ### MODIFICAT ###
@@ -1117,7 +1124,7 @@ Genereaza raportul JSON bazat STRICT pe datele de mai sus."""
         return
 
     print(f"\n[LOG] RASPUNS PRIMIT DE LA AI:")
-    print(f"{ai_response_str[:500]}...")
+    #print(f"{ai_response_str[:500]}...")
 
     try:
         # Curata raspuns
