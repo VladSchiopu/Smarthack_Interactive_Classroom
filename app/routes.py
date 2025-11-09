@@ -179,7 +179,18 @@ def home():
     if role == "Profesor":
         user_folder = os.path.join(UPLOAD_FOLDER, str(current_user.id))
         files = get_files_from_folder(user_folder, current_user.id)
-        return render_template("test.html", user=current_user, files=files)
+
+        subjects = Subject.query.all()
+        subjects_data = []
+        for s in subjects:
+            subjects_data.append({
+                'id': s.id,
+                'name': s.name,
+                'description': s.description,
+                'color': getattr(s, 'color', 'bg-blue-500')  # poți adăuga câmp color în model dacă vrei
+            })
+
+        return render_template("test.html", user=current_user, files=files, subjects=subjects_data)
 
     elif role == "Elev":
         student_profile = Student.query.filter_by(user_id=current_user.id).first()
@@ -298,6 +309,49 @@ def home():
     else:
         logout_user()
         return redirect(url_for("main.login"))
+
+@bp.route('/delete_subject/<int:subject_id>', methods=['DELETE'])
+def delete_subject(subject_id):
+    subject = Subject.query.get(subject_id)
+    if not subject:
+        return jsonify({'error': 'Subject not found'}), 404
+    
+    db.session.delete(subject)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@bp.route('/get_subjects')
+def get_subjects():
+    subjects = Subject.query.all()
+    return jsonify([{
+        'id': s.id,
+        'name': s.name,
+        'description': s.description,
+        'color': getattr(s, 'color', 'bg-blue-500')
+    } for s in subjects])
+
+@bp.route('/add_subject', methods=['POST'])
+def add_subject():
+    data = request.get_json()
+    if not data.get('name'):
+        return jsonify({'error': 'Name is required'}), 400
+
+    new_subject = Subject(
+        name=data['name'],
+        description=data.get('description', ''),  # <- asta trebuie
+        color=data.get('color', 'bg-blue-500')
+    )
+
+    db.session.add(new_subject)
+    db.session.commit()
+
+    return jsonify({
+        'id': new_subject.id,
+        'name': new_subject.name,
+        'description': new_subject.description,
+        'color': new_subject.color
+    })
 
 @bp.route("/asignare_copil", methods=["POST"])
 @login_required

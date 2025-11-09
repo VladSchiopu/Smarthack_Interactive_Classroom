@@ -118,8 +118,8 @@
 
     
     <div class="teacher-dashboard-wrapper min-h-screen bg-slate-50 font-sans">
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <header class="bg-white border-b border-slate-400 sticky top-0 z-10 w-full">
+            <div class="px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
@@ -148,7 +148,7 @@
         </header>
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
                 <div class="bg-white rounded-xl p-6 border border-slate-200">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -163,33 +163,6 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl p-6 border border-slate-200">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-slate-600 text-sm">Total Students</p>
-                            <p class="text-slate-900 text-2xl font-bold" id="totalStudents">177</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl p-6 border border-slate-200">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-slate-600 text-sm">Teaching Hours</p>
-                            <p class="text-slate-900 text-2xl font-bold" id="totalHours">251</p>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div class="mb-6">
@@ -248,28 +221,6 @@
                         ></textarea>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label for="subjectStudents" class="block text-sm font-medium text-slate-900">Number of Students</label>
-                            <input
-                                type="number"
-                                id="subjectStudents"
-                                min="0"
-                                placeholder="0"
-                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <label for="subjectHours" class="block text-sm font-medium text-slate-900">Teaching Hours</label>
-                            <input
-                                type="number"
-                                id="subjectHours"
-                                min="0"
-                                placeholder="0"
-                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                    </div>
 
                     <div class="space-y-2">
                         <label class="block text-sm font-medium text-slate-900">Subject Color</label>
@@ -321,56 +272,7 @@
     </div>
     <script>
         // Initial data
-        let subjects = [
-            {
-                id: '1',
-                name: 'Mathematics',
-                description: 'Advanced algebra and calculus for grade 10-12',
-                students: 32,
-                hours: 45,
-                color: 'bg-blue-500',
-            },
-            {
-                id: '2',
-                name: 'Physics',
-                description: 'Mechanics, thermodynamics, and electromagnetism',
-                students: 28,
-                hours: 40,
-                color: 'bg-purple-500',
-            },
-            {
-                id: '3',
-                name: 'Chemistry',
-                description: 'Organic and inorganic chemistry fundamentals',
-                students: 25,
-                hours: 38,
-                color: 'bg-green-500',
-            },
-            {
-                id: '4',
-                name: 'Biology',
-                description: 'Cell biology, genetics, and human anatomy',
-                students: 30,
-                hours: 42,
-                color: 'bg-emerald-500',
-            },
-            {
-                id: '5',
-                name: 'English Literature',
-                description: 'Classic and contemporary literature analysis',
-                students: 35,
-                hours: 50,
-                color: 'bg-amber-500',
-            },
-            {
-                id: '6',
-                name: 'History',
-                description: 'World history from ancient to modern times',
-                students: 27,
-                hours: 36,
-                color: 'bg-red-500',
-            },
-        ];
+        var subjects = {{ subjects|tojson }} || [];
 
         const colors = [
             { name: 'Blue', value: 'bg-blue-500' },
@@ -449,20 +351,6 @@
                         </div>
                         <h3 class="text-lg font-bold text-slate-900 mb-2">${subject.name}</h3>
                         <p class="text-slate-600 text-sm mb-6 line-clamp-2">${subject.description}</p>
-                        <div class="flex items-center gap-4">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                </svg>
-                                <span class="text-slate-700 text-sm">${subject.students}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span class="text-slate-700 text-sm">${subject.hours}h</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             `).join('');
@@ -471,8 +359,6 @@
         // Update stats
         function updateStats() {
             document.getElementById('totalSubjects').textContent = subjects.length;
-            document.getElementById('totalStudents').textContent = subjects.reduce((sum, s) => sum + s.students, 0);
-            document.getElementById('totalHours').textContent = subjects.reduce((sum, s) => sum + s.hours, 0);
         }
 
         // Open add modal
@@ -506,37 +392,59 @@
         }
 
         // Confirm delete
-        function confirmDelete() {
-            if (deleteSubjectId) {
-                subjects = subjects.filter(s => s.id !== deleteSubjectId);
-                renderSubjects();
-                updateStats();
+        async function confirmDelete() {
+            if (!deleteSubjectId) return;
+
+            try {
+                const response = await fetch(`/delete_subject/${deleteSubjectId}`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete subject');
+                }
+
+                // Actualizare UI după ștergere
+                await fetchSubjects();  // fetchSubjects() se ocupă de subjects + render + stats
                 closeDeleteModal();
+            } catch (err) {
+                alert('Error deleting subject: ' + err.message);
             }
         }
 
+        async function fetchSubjects() {
+            const response = await fetch('/get_subjects');
+            subjects = await response.json();
+            renderSubjects();
+            updateStats();
+        }
+
         // Handle form submission
-        document.getElementById('addSubjectForm').addEventListener('submit', function(e) {
+        document.getElementById('addSubjectForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const name = document.getElementById('subjectName').value;
-            const description = document.getElementById('subjectDescription').value;
-            const students = parseInt(document.getElementById('subjectStudents').value) || 0;
-            const hours = parseInt(document.getElementById('subjectHours').value) || 0;
+            const description = document.getElementById('subjectDescription').value; // <--- descrierea
+            const newSubject = { name, description, color: selectedColor };         // trimitem și ea
 
-            const newSubject = {
-                id: Date.now().toString(),
-                name,
-                description,
-                students,
-                hours,
-                color: selectedColor,
-            };
+            try {
+                const response = await fetch('{{ url_for("main.add_subject") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSubject)
+                });
 
-            subjects.push(newSubject);
-            renderSubjects();
-            updateStats();
-            closeAddModal();
+                if (!response.ok) throw new Error('Failed to add subject');
+
+                const savedSubject = await response.json();
+                subjects.push(savedSubject);
+                renderSubjects();
+                updateStats();
+                closeAddModal();
+            } catch (err) {
+                alert('Error adding subject: ' + err.message);
+            }
         });
 
         // Close modals on outside click
