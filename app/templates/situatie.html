@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="sidebar">
+    <div class="profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
+        <div>
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.role }}</p>
+        </div>
+    </div>
+
+    <ul class="menu">
+        <li><a href="{{ url_for('main.pdashboard') }}">Dashboard</a></li>
+        <li class="active"><a href="{{ url_for('main.home') }}">Situație copil</a></li>
+        <li><a href="{{ url_for('main.absenta') }}">Absențe</a></li>
+        <li><a href="#">Mesagerie</a></li>
+        <li><a href="{{ url_for('main.chat_page') }}" target="_blank">Chat AI</a></li>
+    </ul>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Logout</a>
+</div>
+<body>
+
+<div class="content-wrapper">
+    <div class="main2">
+        <div class="header_situatie">
+            <p>Elev</p>
+            <h2>{{ child.name }}</h2>
+        </div>
+
+    </div>
+
+    <div class="container">
+        <h1 class="page-title">Situație Școlară</h1>
+
+        <!-- Overall Average Card -->
+        <div class="card gradient-card overall-average">
+            <div class="card-content">
+                <h3 class="card-title">Media Generală</h3>
+                <div class="average-score">
+                    <span class="score">{{child.general_avg}}</span>
+                    <span class="max-score">/ 10</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ (child.general_avg / 10) * 100 }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subjects Grid -->
+        <div class="grid-container">
+            {% for subject, assignments in child.grades_by_subject.items() %}
+                {# Calcul media #}
+                {% set grades_num = [] %}
+                {% for a in assignments %}
+                    {% set _ = grades_num.append(a.grade | float) %}
+                {% endfor %}
+                {% set avg = (grades_num | sum / grades_num | length) if grades_num else 0 %}
+                
+                <div class="card subject-card">
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h4>{{ subject }}</h4>
+                            <span class="badge badge-success">{{ "%.1f"|format(avg) }}</span>
+                        </div>
+                        <div class="grades">
+                            {% for a in assignments %}
+                                {% set g = a.grade | float %}
+                                {% if g >= 9 %}
+                                    {% set grade_class = "grade-green" %}
+                                {% elif g >= 7 %}
+                                    {% set grade_class = "grade-yellow" %}
+                                {% else %}
+                                    {% set grade_class = "grade-red" %}
+                                {% endif %}
+                                <div class="grade-box {{ grade_class }}">{{ a.grade }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ avg * 10 }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+        <!-- Additional Info -->
+        <div class="card additional-info">
+            <div class="card-content">
+                <h3 class="card-title">Informații Suplimentare</h3>
+                <div class="info-list">
+                    <div class="info-item">
+                        <span>Total Materii</span>
+                        <span>{{child.total_subjects}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Total Note</span>
+                        <span>{{child.total_grades}}</span>
+                    </div>
+                    <div class="info-item highlight">
+                        <span>Cea mai mare medie</span>
+                        <span>{{child.max_avg}} - {{child.max_subject}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+{% endblock %}

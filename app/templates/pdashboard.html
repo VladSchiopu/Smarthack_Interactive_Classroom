@@ -85,7 +85,7 @@
 
 <div class="sidebar">
     <div class="profile">
-        <img src="https://placehold.co/60x60/c0d7ee/ffffff.png?text=U" alt="Profile">
+        <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="Profile">
         <div>
             <h3>{{ user.name|default('Parent User') }}</h3>
             <p>{{ user.role|default('Gaurdian') }}</p>
@@ -158,14 +158,14 @@
             <div class="subheader">Teacher Feedback</div>
             <div style="margin-top: 15px;">
                 <div class="feedback-item">
-                    <img src="https://placehold.co/40x40/fecaca/dc2626.png?text=MD" alt="T">
+                    <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="T">
                     <div>
                         <strong>Ms. Davis</strong> <small style="color: #888;">- 2 days ago</small>
                         <p>Sarah's latest essay was well-researched and insightful.</p>
                     </div>
                 </div>
                 <div class="feedback-item" style="border-bottom: none;">
-                    <img src="https://placehold.co/40x40/c0d7ee/ffffff.png?text=MC" alt="T">
+                    <img src="{{ url_for('static', filename='images/images.jpeg') }}" alt="T">
                     <div>
                         <strong>Mr. Chen</strong> <small style="color: #888;">- 4 days ago</small>
                         <p>She's showing a fantastic grasp of algebraic concepts.</p>
