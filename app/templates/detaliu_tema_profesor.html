@@ -36,7 +36,11 @@
             <div class="assignment-card">
                 <div>
                     <h4>{{ sub.student.user.name }}</h4>
-                    <p>Trimis la: {{ sub.submitted_at.strftime('%d-%m-%Y %H:%M') }}</p>
+                    {% if sub.submitted_at %}
+                            <p>Trimis la: {{ sub.submitted_at.strftime('%d-%m-%Y %H:%M') }}</p>
+                        {% else %}
+                            <p>Trimis la: <em class="text-muted">Netrimis încă</em></p>
+                        {% endif %}
                 </div>
                 
                 {% if sub.status == 'Corectat' %}

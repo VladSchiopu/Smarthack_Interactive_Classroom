@@ -784,13 +784,23 @@ def detaliu_tema_profesor(id_tema):
     if current_user.role != "Profesor":
         flash("Acces nepermis.", "error")
         return redirect(url_for("main.home"))
+
     assignment = Assignment.query.get_or_404(id_tema)
+
+    # Obține toate submissions pentru această temă
     submissions = Submission.query.filter_by(assignment_id=id_tema).all()
+
+    # ADĂUGAT: Sortare - trimise mai întâi, apoi după nume elev
+    submissions_sorted = sorted(submissions, key=lambda s: (
+        s.status == 'Nefăcut',  # False (Trimis/Corectat) înainte de True (Nefăcut)
+        s.student.user.name if s.student and s.student.user else ""
+    ))
+
     return render_template(
         "detaliu_tema_profesor.html",
         user=current_user,
         assignment=assignment,
-        submissions=submissions
+        submissions=submissions_sorted  # Folosește lista sortată
     )
 
 
